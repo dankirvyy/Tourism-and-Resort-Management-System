@@ -292,6 +292,16 @@ $config['csrf_regenerate']         = FALSE;
 | Payment Gateway Configuration
 |--------------------------------------------------------------------------
 */
+// Backwards-compatible payment config for PaymongoService
+$config['payment'] = array(
+    'gateway' => 'paymongo',
+    'paymongo' => array(
+        'public_key' => getenv('PAYMONGO_PUBLIC_KEY') ?: 'your_paymongo_public_key_here',
+        'secret_key' => getenv('PAYMONGO_SECRET_KEY') ?: 'your_paymongo_secret_key_here',
+        'mode' => getenv('PAYMONGO_MODE') ?: 'test'
+    )
+);
+
 $config['sendgrid_api_key'] = getenv('SENDGRID_API_KEY') ?: 'your_sendgrid_api_key_here';
 $config['sender_email'] = getenv('SENDER_EMAIL') ?: 'your_sender_email@example.com'; 
 $config['sender_name'] = getenv('SENDER_NAME') ?: 'Your App Name';
