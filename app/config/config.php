@@ -301,16 +301,16 @@ $config['payment'] = array(
     )
 );
 
-$config['sendgrid_api_key'] = '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';
-$config['sender_email'] = 'dankirvymanongsong@gmail.com'; 
-$config['sender_name'] = 'Visit Mindoro Bookings';
+$config['sendgrid_api_key'] = getenv('SENDGRID_API_KEY') ?: 'your_sendgrid_api_key_here';
+$config['sender_email'] = getenv('SENDER_EMAIL') ?: 'your_sender_email@example.com'; 
+$config['sender_name'] = getenv('SENDER_NAME') ?: 'Your App Name';
 
 /*
 |--------------------------------------------------------------------------
 | Google OAuth 2.0 Configuration
 |--------------------------------------------------------------------------
 */
-$config['google_client_id']     = '14267112645-3ej8fbgnct92spgn7o3di1c9o525fkui.apps.googleusercontent.com';
-$config['google_client_secret'] = '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';
-$config['google_redirect_uri']  = 'http://localhost:3000/google-callback'; // MUST match the one in Google Console
+$config['google_client_id']     = getenv('GOOGLE_CLIENT_ID') ?: 'your_google_client_id_here';
+$config['google_client_secret'] = getenv('GOOGLE_CLIENT_SECRET') ?: 'your_google_client_secret_here';
+$config['google_redirect_uri']  = getenv('GOOGLE_REDIRECT_URI') ?: 'http://localhost:3000/google-callback'; // MUST match the one in Google Console
 ?>
