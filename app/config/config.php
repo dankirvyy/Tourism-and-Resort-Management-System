@@ -292,15 +292,6 @@ $config['csrf_regenerate']         = FALSE;
 | Payment Gateway Configuration
 |--------------------------------------------------------------------------
 */
-$config['payment'] = array(
-    'gateway' => 'paymongo',
-    'paymongo' => array(
-        'public_key' => 'pk_test_7SuLb7rjgGyGZNnGHnZB4qGS',
-        'secret_key' => 'sk_test_DwWeUKvWt1bUzLHQ1xT9ij4x',
-        'mode' => 'test'
-    )
-);
-
 $config['sendgrid_api_key'] = getenv('SENDGRID_API_KEY') ?: 'your_sendgrid_api_key_here';
 $config['sender_email'] = getenv('SENDER_EMAIL') ?: 'your_sender_email@example.com'; 
 $config['sender_name'] = getenv('SENDER_NAME') ?: 'Your App Name';
