@@ -60,8 +60,8 @@ $router->get('/edit-profile', 'Home::edit_profile');
 $router->post('/profile/update', 'Home::update_profile');
 
 // Booking Cancellation Routes
-$router->post('/booking/cancel-room/{id}', 'Home::cancel_room_booking/$1');
-$router->post('/booking/cancel-tour/{id}', 'Home::cancel_tour_booking/$1');
+$router->post('/booking/cancel-room/{id}', 'Home::cancel_room_booking');
+$router->post('/booking/cancel-tour/{id}', 'Home::cancel_tour_booking');
 
 // Admin Dashboard
 $router->get('/admin', 'Admin::dashboard');
