@@ -200,9 +200,10 @@ class Payment extends Controller {
         }
 
         // Check if this is a PayPal payment
-        $payment_method = $this->io->post('payment_method') ?: 'gcash'; // Default to gcash if not set
+        // Note: The tour booking form uses GET method, so we read from GET parameters
+        $payment_method = $this->io->get('payment_method') ?: 'gcash'; // Default to gcash if not set
         if ($payment_method === 'paypal') {
-            $paypalOrderId = $this->io->post('paypal_order_id');
+            $paypalOrderId = $this->io->get('paypal_order_id');
             if (!$paypalOrderId) {
                 $this->session->set_flashdata('error', 'PayPal order ID missing.');
                 redirect('/booking/confirm-tour');
