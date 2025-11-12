@@ -88,6 +88,16 @@
                 <span class="block sm:inline"><?= $this->session->flashdata('profile_error'); ?></span>
             </div>
         <?php endif; ?>
+        <?php if ($this->session->flashdata('success')): ?>
+            <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+                <span class="block sm:inline"><?= $this->session->flashdata('success'); ?></span>
+            </div>
+        <?php endif; ?>
+        <?php if ($this->session->flashdata('error')): ?>
+             <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <span class="block sm:inline"><?= $this->session->flashdata('error'); ?></span>
+            </div>
+        <?php endif; ?>
 
         <div class="bg-white shadow sm:rounded-lg overflow-hidden mb-8">
             <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
@@ -138,10 +148,46 @@
                 <?php if (!empty($room_bookings)): ?>
                     <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in / Check-out</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th></tr></thead>
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in / Check-out</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <?php foreach ($room_bookings as $booking): ?>
-                                <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= html_escape($booking['room_number'] . ' (' . $booking['room_type_name'] . ')'); ?></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= html_escape($booking['check_in_date']); ?> to <?= html_escape($booking['check_out_date']); ?></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= ucfirst(html_escape($booking['status'])); ?></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₱<?= number_format($booking['total_price'], 2); ?></td></tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <?= html_escape($booking['room_number'] . ' (' . $booking['room_type_name'] . ')'); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <?= html_escape($booking['check_in_date']); ?> to <?= html_escape($booking['check_out_date']); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <?php if ($booking['status'] === 'confirmed'): ?>
+                                            <span class="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">Confirmed</span>
+                                        <?php elseif ($booking['status'] === 'cancelled'): ?>
+                                            <span class="inline-flex rounded-full bg-red-100 px-2 text-xs font-semibold leading-5 text-red-800">Cancelled</span>
+                                        <?php else: ?>
+                                            <span class="inline-flex rounded-full bg-gray-100 px-2 text-xs font-semibold leading-5 text-gray-800"><?= ucfirst(html_escape($booking['status'])); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        ₱<?= number_format($booking['total_price'], 2); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <?php if ($booking['status'] === 'confirmed'): ?>
+                                            <form method="POST" action="<?= site_url('booking/cancel-room/' . $booking['id']) ?>" onsubmit="return confirm('Are you sure you want to cancel this room booking?');" style="display: inline;">
+                                                <button type="submit" class="text-red-600 hover:text-red-900">Cancel Booking</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span class="text-gray-400">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -158,10 +204,50 @@
                 <?php if (!empty($tour_bookings)): ?>
                     <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
-                         <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th></tr></thead>
+                         <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <?php foreach ($tour_bookings as $booking): ?>
-                                <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= html_escape($booking['tour_name']); ?></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= html_escape($booking['booking_date']); ?></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= html_escape($booking['number_of_pax']); ?></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= ucfirst(html_escape($booking['status'])); ?></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₱<?= number_format($booking['total_price'], 2); ?></td></tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <?= html_escape($booking['tour_name']); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <?= html_escape($booking['booking_date']); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <?= html_escape($booking['number_of_pax']); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <?php if ($booking['status'] === 'confirmed'): ?>
+                                            <span class="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">Confirmed</span>
+                                        <?php elseif ($booking['status'] === 'cancelled'): ?>
+                                            <span class="inline-flex rounded-full bg-red-100 px-2 text-xs font-semibold leading-5 text-red-800">Cancelled</span>
+                                        <?php else: ?>
+                                            <span class="inline-flex rounded-full bg-gray-100 px-2 text-xs font-semibold leading-5 text-gray-800"><?= ucfirst(html_escape($booking['status'])); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        ₱<?= number_format($booking['total_price'], 2); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <?php if ($booking['status'] === 'confirmed'): ?>
+                                            <form method="POST" action="<?= site_url('booking/cancel-tour/' . $booking['id']) ?>" onsubmit="return confirm('Are you sure you want to cancel this tour booking?');" style="display: inline;">
+                                                <button type="submit" class="text-red-600 hover:text-red-900">Cancel Booking</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span class="text-gray-400">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>

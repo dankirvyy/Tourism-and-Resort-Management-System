@@ -490,5 +490,120 @@ class Home extends Controller {
         // Redirect back to the profile page
         redirect('/my-profile');
     }
+
+    /**
+     * Cancel a room booking
+     */
+    public function cancel_room_booking($booking_id) {
+        // Redirect to login if not logged in
+        if (!$this->session->has_userdata('user_id')) {
+            redirect('/login');
+        }
+
+        $guest_id = $this->session->userdata('user_id');
+
+        // Get booking details to verify ownership
+        $booking = $this->Booking_model->find($booking_id);
+
+        if (!$booking) {
+            $this->session->set_flashdata('error', 'Booking not found.');
+            redirect('/my-profile');
+            return;
+        }
+
+        // Verify that this booking belongs to the logged-in user
+        if ($booking['guest_id'] != $guest_id) {
+            $this->session->set_flashdata('error', 'You do not have permission to cancel this booking.');
+            redirect('/my-profile');
+            return;
+        }
+
+        // Check if booking is already cancelled
+        if ($booking['status'] === 'cancelled') {
+            $this->session->set_flashdata('error', 'This booking is already cancelled.');
+            redirect('/my-profile');
+            return;
+        }
+
+        // Check if booking can be cancelled (only confirmed bookings can be cancelled)
+        if ($booking['status'] !== 'confirmed') {
+            $this->session->set_flashdata('error', 'Only confirmed bookings can be cancelled.');
+            redirect('/my-profile');
+            return;
+        }
+
+        // Update booking status to cancelled
+        $updated = $this->Booking_model->update($booking_id, ['status' => 'cancelled']);
+
+        if ($updated) {
+            // Update room status back to available
+            $this->Room_model->update($booking['room_id'], ['status' => 'available']);
+
+            $this->session->set_flashdata('success', 'Room booking cancelled successfully.');
+            error_log("Room booking #{$booking_id} cancelled by guest #{$guest_id}");
+        } else {
+            $this->session->set_flashdata('error', 'Failed to cancel booking. Please try again.');
+        }
+
+        redirect('/my-profile');
+    }
+
+    /**
+     * Cancel a tour booking
+     */
+    public function cancel_tour_booking($booking_id) {
+        // Redirect to login if not logged in
+        if (!$this->session->has_userdata('user_id')) {
+            redirect('/login');
+        }
+
+        $guest_id = $this->session->userdata('user_id');
+
+        // Get booking details using the table directly since we need tour_id
+        $booking = $this->db->table('tour_bookings')
+            ->where('id', $booking_id)
+            ->get();
+
+        if (!$booking) {
+            $this->session->set_flashdata('error', 'Tour booking not found.');
+            redirect('/my-profile');
+            return;
+        }
+
+        // Verify that this booking belongs to the logged-in user
+        if ($booking['guest_id'] != $guest_id) {
+            $this->session->set_flashdata('error', 'You do not have permission to cancel this booking.');
+            redirect('/my-profile');
+            return;
+        }
+
+        // Check if booking is already cancelled
+        if ($booking['status'] === 'cancelled') {
+            $this->session->set_flashdata('error', 'This tour booking is already cancelled.');
+            redirect('/my-profile');
+            return;
+        }
+
+        // Check if booking can be cancelled (only confirmed bookings can be cancelled)
+        if ($booking['status'] !== 'confirmed') {
+            $this->session->set_flashdata('error', 'Only confirmed bookings can be cancelled.');
+            redirect('/my-profile');
+            return;
+        }
+
+        // Update booking status to cancelled
+        $updated = $this->db->table('tour_bookings')
+            ->where('id', $booking_id)
+            ->update(['status' => 'cancelled']);
+
+        if ($updated) {
+            $this->session->set_flashdata('success', 'Tour booking cancelled successfully.');
+            error_log("Tour booking #{$booking_id} cancelled by guest #{$guest_id}");
+        } else {
+            $this->session->set_flashdata('error', 'Failed to cancel tour booking. Please try again.');
+        }
+
+        redirect('/my-profile');
+    }
 }
 ?>
