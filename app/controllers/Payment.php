@@ -14,6 +14,8 @@ class Payment extends Controller {
         $this->call->model('Booking_model');
         $this->call->model('Tour_model');
         $this->call->model('Tour_booking_model');
+        $this->call->model('Invoice_model');
+        $this->call->model('Invoice_item_model');
 
         try {
             // Load and initialize our PayPal service
@@ -114,6 +116,21 @@ class Payment extends Controller {
             redirect('/rooms');
         }
 
+        // Get payment type (full or downpayment) and amount
+        $payment_type = $this->io->post('payment_type') ?: 'full';
+        $amount_to_pay = $this->io->post('amount_to_pay');
+        
+        // Calculate payment amount based on type
+        if (!$amount_to_pay) {
+            $amount_to_pay = $payment_type === 'downpayment' 
+                ? $booking['booking_data']['total_price'] * 0.5 
+                : $booking['booking_data']['total_price'];
+        }
+        
+        // Store payment info in session
+        $this->session->set_userdata('payment_type', $payment_type);
+        $this->session->set_userdata('amount_to_pay', $amount_to_pay);
+
         // Check if this is a PayPal payment
         $payment_method = $this->io->post('payment_method') ?: 'gcash'; // Default to gcash if not set
         if ($payment_method === 'paypal') {
@@ -141,14 +158,14 @@ class Payment extends Controller {
 
                 $orderAmount = $purchase_unit['amount']['value'];
                 $orderCurrency = $purchase_unit['amount']['currency_code'];
-                $expectedUsd = number_format(($booking['booking_data']['total_price'] / 55), 2, '.', '');
+                $expectedUsd = number_format(($amount_to_pay / 55), 2, '.', '');
 
                 if ($orderCurrency !== 'USD' || (string)$orderAmount !== (string)$expectedUsd) {
                     throw new Exception('PayPal amount mismatch. Expected ' . $expectedUsd . ' USD, got ' . $orderAmount . ' ' . $orderCurrency);
                 }
 
                 // Payment verified — finalize booking
-                return $this->finalize_room_booking($booking);
+                return $this->finalize_room_booking($booking, $payment_type, $amount_to_pay);
             } catch (Exception $e) {
                 $this->session->set_flashdata('error', 'PayPal verification failed: ' . $e->getMessage());
                 redirect('/booking/confirm');
@@ -163,7 +180,7 @@ class Payment extends Controller {
             redirect('/booking/confirm');
         }
 
-        $amount = (int) ($booking['booking_data']['total_price'] * 100);
+        $amount = (int) ($amount_to_pay * 100);
 
         try {
             $source = $this->paymongo->createSource([
@@ -199,6 +216,21 @@ class Payment extends Controller {
             redirect('/tours');
         }
 
+        // Get payment type (full or downpayment) and amount
+        $payment_type = $this->io->get('payment_type') ?: 'full';
+        $amount_to_pay = $this->io->get('amount_to_pay');
+        
+        // Calculate payment amount based on type
+        if (!$amount_to_pay) {
+            $amount_to_pay = $payment_type === 'downpayment' 
+                ? $tour_booking['booking_data']['total_price'] * 0.5 
+                : $tour_booking['booking_data']['total_price'];
+        }
+        
+        // Store payment info in session
+        $this->session->set_userdata('payment_type', $payment_type);
+        $this->session->set_userdata('amount_to_pay', $amount_to_pay);
+
         // Check if this is a PayPal payment
         // Note: The tour booking form uses GET method, so we read from GET parameters
         $payment_method = $this->io->get('payment_method') ?: 'gcash'; // Default to gcash if not set
@@ -227,14 +259,14 @@ class Payment extends Controller {
 
                 $orderAmount = $purchase_unit['amount']['value'];
                 $orderCurrency = $purchase_unit['amount']['currency_code'];
-                $expectedUsd = number_format(($tour_booking['booking_data']['total_price'] / 55), 2, '.', '');
+                $expectedUsd = number_format(($amount_to_pay / 55), 2, '.', '');
 
                 if ($orderCurrency !== 'USD' || (string)$orderAmount !== (string)$expectedUsd) {
                     throw new Exception('PayPal amount mismatch. Expected ' . $expectedUsd . ' USD, got ' . $orderAmount . ' ' . $orderCurrency);
                 }
 
                 // Payment verified — finalize tour booking
-                return $this->finalize_tour_booking($tour_booking);
+                return $this->finalize_tour_booking($tour_booking, $payment_type, $amount_to_pay);
             } catch (Exception $e) {
                 $this->session->set_flashdata('error', 'PayPal verification failed: ' . $e->getMessage());
                 redirect('/booking/confirm-tour');
@@ -249,7 +281,7 @@ class Payment extends Controller {
             redirect('/booking/confirm-tour');
         }
 
-        $amount = (int) ($tour_booking['booking_data']['total_price'] * 100);
+        $amount = (int) ($amount_to_pay * 100);
 
         try {
             $source = $this->paymongo->createSource([
@@ -338,7 +370,9 @@ class Payment extends Controller {
                 ]);
 
                 // NOW we finalize the booking
-                return $this->finalize_room_booking($booking);
+                $payment_type = $this->session->userdata('payment_type') ?: 'full';
+                $amount_to_pay = $this->session->userdata('amount_to_pay') ?: $booking['booking_data']['total_price'];
+                return $this->finalize_room_booking($booking, $payment_type, $amount_to_pay);
             } else {
                 $this->session->set_flashdata('error', 'Payment verification failed. Please try again.');
                 redirect('/booking/confirm');
@@ -352,16 +386,23 @@ class Payment extends Controller {
     /**
      * Step 3 (Room): Save to DB and send email (Moved from Home.php)
      */
-    private function finalize_room_booking($booking) {
+    private function finalize_room_booking($booking, $payment_type = 'full', $amount_paid = null) {
         $selected_room_id = $booking['booking_data']['room_id'];
         $check_in = $booking['booking_data']['check_in_date'];
         $check_out = $booking['booking_data']['check_out_date'];
+        
+        // Default amount paid to full price if not provided
+        if ($amount_paid === null) {
+            $amount_paid = $booking['booking_data']['total_price'];
+        }
         
         // --- FINAL CONFLICT CHECK (Prevents race conditions) ---
         if ($this->Booking_model->has_conflict($selected_room_id, $check_in, $check_out)) {
             $this->session->unset_userdata('pending_booking');
             $this->session->unset_userdata('paymongo_source_id');
             $this->session->unset_userdata('paypal_order_id');
+            $this->session->unset_userdata('payment_type');
+            $this->session->unset_userdata('amount_to_pay');
             $this->session->set_flashdata('error', 
                 'Sorry, this room was just booked by another guest while you were completing payment. Your payment was successful and will be refunded. Please select another room or different dates.');
             redirect('/rooms');
@@ -375,6 +416,10 @@ class Payment extends Controller {
             $guest_data = $booking['guest_data'];
             $guest = $this->Guest_model->find_by_email($guest_data['email']);
             $guest_id = $guest ? $guest['id'] : $this->session->userdata('user_id');
+            
+            // Determine payment status based on payment type
+            $payment_status = $payment_type === 'downpayment' ? 'partial' : 'paid';
+            $balance_due = $booking['booking_data']['total_price'] - $amount_paid;
 
             $final_booking_data = [
                 'guest_id' => $guest_id,
@@ -382,6 +427,9 @@ class Payment extends Controller {
                 'check_in_date' => $check_in,
                 'check_out_date' => $check_out,
                 'total_price' => $booking['booking_data']['total_price'],
+                'amount_paid' => $amount_paid,
+                'balance_due' => $balance_due,
+                'payment_status' => $payment_status,
                 'status' => 'confirmed' // Set to CONFIRMED
             ];
 
@@ -390,18 +438,33 @@ class Payment extends Controller {
             if ($booking_id) {
                 $this->Room_model->update($selected_room_id, ['status' => 'occupied']);
 
+                // --- Create Invoice ---
+                $this->create_room_invoice($booking_id, $booking, $room_to_book, $final_booking_data);
+
                 // --- Send Confirmation Email ---
                 $subject = "Your Visit Mindoro Room Booking is Confirmed!";
                 $title = "Room Booking Confirmed!";
                 $guest_name = $guest_data['first_name'];
-                $intro_message = "Thank you! Your payment has been processed and your booking is confirmed. Here are your details:";
+                
+                if ($payment_type === 'downpayment') {
+                    $intro_message = "Thank you! Your downpayment has been processed and your booking is confirmed. Here are your details:";
+                } else {
+                    $intro_message = "Thank you! Your payment has been processed and your booking is confirmed. Here are your details:";
+                }
+                
                 $details = [
                     'Room Type' => $booking['room_type_data']['name'],
                     'Room Number' => $room_to_book['room_number'],
                     'Check-in' => date('F j, Y', strtotime($final_booking_data['check_in_date'])),
                     'Check-out' => date('F j, Y', strtotime($final_booking_data['check_out_date'])),
-                    'Total Paid' => 'PHP ' . number_format($final_booking_data['total_price'], 2)
+                    'Total Price' => 'PHP ' . number_format($final_booking_data['total_price'], 2),
+                    'Amount Paid' => 'PHP ' . number_format($amount_paid, 2)
                 ];
+                
+                if ($payment_type === 'downpayment') {
+                    $details['Balance Due'] = 'PHP ' . number_format($balance_due, 2) . ' (Pay on arrival)';
+                }
+                
                 $call_to_action = "We look forward to seeing you!";
 
                 $message = generate_email_template($title, $guest_name, $intro_message, $details, $call_to_action);
@@ -411,6 +474,8 @@ class Payment extends Controller {
 
                 $this->session->unset_userdata('pending_booking');
                 $this->session->unset_userdata('paypal_order_id');
+                $this->session->unset_userdata('payment_type');
+                $this->session->unset_userdata('amount_to_pay');
 
                 $this->call->view('public/payment_success');
             }
@@ -486,7 +551,9 @@ class Payment extends Controller {
                 ]);
 
                 // NOW we finalize the booking
-                return $this->finalize_tour_booking($tour_booking);
+                $payment_type = $this->session->userdata('payment_type') ?: 'full';
+                $amount_to_pay = $this->session->userdata('amount_to_pay') ?: $tour_booking['booking_data']['total_price'];
+                return $this->finalize_tour_booking($tour_booking, $payment_type, $amount_to_pay);
             } else {
                 $this->session->set_flashdata('error', 'Payment verification failed. Please try again.');
                 redirect('/booking/confirm-tour');
@@ -500,10 +567,15 @@ class Payment extends Controller {
     /**
      * Step 3 (Tour): Save to DB and send email (Moved from Home.php)
      */
-    private function finalize_tour_booking($tour_booking) {
+    private function finalize_tour_booking($tour_booking, $payment_type = 'full', $amount_paid = null) {
         $tour_id = $tour_booking['booking_data']['tour_id'];
         $booking_date = $tour_booking['booking_data']['booking_date'];
         $num_pax = $tour_booking['booking_data']['number_of_pax'];
+        
+        // Default amount paid to full price if not provided
+        if ($amount_paid === null) {
+            $amount_paid = $tour_booking['booking_data']['total_price'];
+        }
         
         // --- FINAL CAPACITY CHECK (Prevents race conditions) ---
         $availability = $this->Tour_booking_model->check_availability($tour_id, $booking_date, $num_pax);
@@ -512,6 +584,8 @@ class Payment extends Controller {
             $this->session->unset_userdata('pending_tour_booking');
             $this->session->unset_userdata('paymongo_source_id');
             $this->session->unset_userdata('paypal_order_id');
+            $this->session->unset_userdata('payment_type');
+            $this->session->unset_userdata('amount_to_pay');
             
             $error_msg = 'Sorry, this tour was just fully booked by other guests while you were completing payment. Your payment was successful and will be refunded.';
             if (isset($availability['available_slots']) && $availability['available_slots'] > 0) {
@@ -527,6 +601,10 @@ class Payment extends Controller {
         $guest_data = $tour_booking['guest_data'];
         $guest = $this->Guest_model->find_by_email($guest_data['email']);
         $guest_id = $guest ? $guest['id'] : $this->session->userdata('user_id');
+        
+        // Determine payment status based on payment type
+        $payment_status = $payment_type === 'downpayment' ? 'partial' : 'paid';
+        $balance_due = $tour_booking['booking_data']['total_price'] - $amount_paid;
 
         $final_tour_booking_data = [
             'guest_id' => $guest_id,
@@ -534,23 +612,41 @@ class Payment extends Controller {
             'booking_date' => $booking_date,
             'number_of_pax' => $num_pax,
             'total_price' => $tour_booking['booking_data']['total_price'],
+            'amount_paid' => $amount_paid,
+            'balance_due' => $balance_due,
+            'payment_status' => $payment_status,
             'status' => 'confirmed' // Set to CONFIRMED
         ];
 
         $tour_booking_id = $this->db->table('tour_bookings')->insert($final_tour_booking_data);
 
         if ($tour_booking_id) {
+            // --- Create Invoice ---
+            $this->create_tour_invoice($tour_booking_id, $tour_booking, $final_tour_booking_data);
+
             // --- Send Confirmation Email ---
             $subject = "Your Visit Mindoro Tour Booking is Confirmed!";
             $title = "Tour Booking Confirmed!";
             $guest_name = $guest_data['first_name'];
-            $intro_message = "Thank you! Your payment has been processed and your tour booking is confirmed. Here are your details:";
+            
+            if ($payment_type === 'downpayment') {
+                $intro_message = "Thank you! Your downpayment has been processed and your tour booking is confirmed. Here are your details:";
+            } else {
+                $intro_message = "Thank you! Your payment has been processed and your tour booking is confirmed. Here are your details:";
+            }
+            
             $details = [
                 'Tour Name' => $tour_booking['tour_data']['name'],
                 'Tour Date' => date('F j, Y', strtotime($final_tour_booking_data['booking_date'])),
                 'Number of Guests' => $final_tour_booking_data['number_of_pax'],
-                'Total Paid' => 'PHP ' . number_format($final_tour_booking_data['total_price'], 2)
+                'Total Price' => 'PHP ' . number_format($final_tour_booking_data['total_price'], 2),
+                'Amount Paid' => 'PHP ' . number_format($amount_paid, 2)
             ];
+            
+            if ($payment_type === 'downpayment') {
+                $details['Balance Due'] = 'PHP ' . number_format($balance_due, 2) . ' (Pay before tour)';
+            }
+            
             $call_to_action = "We look forward to seeing you!";
 
             $message = generate_email_template($title, $guest_name, $intro_message, $details, $call_to_action);
@@ -559,6 +655,9 @@ class Payment extends Controller {
             // --- End Email ---
             
             $this->session->unset_userdata('pending_tour_booking');
+            $this->session->unset_userdata('paymongo_source_id');
+            $this->session->unset_userdata('payment_type');
+            $this->session->unset_userdata('amount_to_pay');
             $this->session->unset_userdata('paymongo_source_id');
             $this->call->view('public/payment_success');
         }
@@ -667,6 +766,79 @@ class Payment extends Controller {
                     'success' => false,
                     'message' => $e->getMessage()
                 ]));
+        }
+    }
+
+    /**
+     * Create an invoice for a room booking
+     */
+    private function create_room_invoice($booking_id, $booking, $room, $final_booking_data) {
+        // Create invoice record
+        $invoice_data = [
+            'booking_id' => $booking_id,
+            'issue_date' => date('Y-m-d'),
+            'due_date' => $final_booking_data['check_in_date'], // Due on check-in
+            'total_amount' => $final_booking_data['total_price'],
+            'status' => $final_booking_data['payment_status'] === 'paid' ? 'paid' : 'unpaid'
+        ];
+        
+        $invoice_id = $this->Invoice_model->insert($invoice_data);
+        
+        if ($invoice_id) {
+            // Calculate duration
+            $checkin_date = new DateTime($final_booking_data['check_in_date']);
+            $checkout_date = new DateTime($final_booking_data['check_out_date']);
+            $nights = $checkout_date->diff($checkin_date)->format("%a");
+            
+            // Add invoice item for the room booking
+            $item_data = [
+                'invoice_id' => $invoice_id,
+                'description' => $booking['room_type_data']['name'] . ' (RM ' . $room['room_number'] . ') - ' . 
+                               date('Y-m-d', strtotime($final_booking_data['check_in_date'])) . ' to ' . 
+                               date('Y-m-d', strtotime($final_booking_data['check_out_date'])),
+                'quantity' => max(1, $nights), // Number of nights
+                'unit_price' => $booking['room_type_data']['base_price'],
+                'total_price' => $final_booking_data['total_price']
+            ];
+            
+            $this->Invoice_item_model->insert($item_data);
+        }
+    }
+
+    /**
+     * Create an invoice for a tour booking
+     */
+    private function create_tour_invoice($tour_booking_id, $tour_booking, $final_tour_booking_data) {
+        // Create invoice record
+        $invoice_data = [
+            'booking_id' => null, // Tour bookings don't use the bookings table
+            'tour_booking_id' => $tour_booking_id, // Store tour booking ID separately
+            'issue_date' => date('Y-m-d'),
+            'due_date' => $final_tour_booking_data['booking_date'], // Due on tour date
+            'total_amount' => $final_tour_booking_data['total_price'],
+            'status' => $final_tour_booking_data['payment_status'] === 'paid' ? 'paid' : 'unpaid'
+        ];
+        
+        $invoice_id = $this->Invoice_model->insert($invoice_data);
+        
+        if ($invoice_id) {
+            // Calculate unit price (price per person)
+            $unit_price = $final_tour_booking_data['number_of_pax'] > 0 
+                ? $final_tour_booking_data['total_price'] / $final_tour_booking_data['number_of_pax']
+                : $final_tour_booking_data['total_price'];
+            
+            // Add invoice item for the tour booking
+            $item_data = [
+                'invoice_id' => $invoice_id,
+                'description' => 'Tour: ' . $tour_booking['tour_data']['name'] . ' (' . 
+                               date('Y-m-d', strtotime($final_tour_booking_data['booking_date'])) . ') - ' . 
+                               $final_tour_booking_data['number_of_pax'] . ' pax',
+                'quantity' => $final_tour_booking_data['number_of_pax'],
+                'unit_price' => $unit_price,
+                'total_price' => $final_tour_booking_data['total_price']
+            ];
+            
+            $this->Invoice_item_model->insert($item_data);
         }
     }
 

@@ -59,8 +59,8 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900">Billed To:</h3>
                         <p class="mt-2 text-sm text-gray-600">
-                            <?= html_escape($booking['first_name'] . ' ' . $booking['last_name']) ?><br>
-                            <?= html_escape($booking['email']) ?>
+                            <?= html_escape($invoice['first_name'] . ' ' . $invoice['last_name']) ?><br>
+                            <?= html_escape($invoice['email']) ?>
                         </p>
                     </div>
                     <div class="text-left md:text-right">
@@ -87,16 +87,21 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white">
-                                    <?php foreach ($items as $item): ?>
+                                    <?php if (!empty($invoice['items'])): ?>
+                                        <?php foreach ($invoice['items'] as $item): ?>
+                                            <tr>
+                                                <td class="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"><?= html_escape($item['description']); ?></td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-center"><?= html_escape($item['quantity']); ?></td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">₱<?= number_format($item['unit_price'], 2); ?></td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">₱<?= number_format($item['total_price'], 2); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
                                         <tr>
-                                            <td class="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"><?= html_escape($item['description']); ?></td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-center"><?= html_escape($item['quantity']); ?></td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">₱<?= number_format($item['unit_price'], 2); ?></td>
-                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">₱<?= number_format($item['total_price'], 2); ?></td>
+                                            <td colspan="4" class="py-4 text-center text-gray-500">No items found</td>
                                         </tr>
-                                    <?php endforeach; ?>
-
-                                    </tbody>
+                                    <?php endif; ?>
+                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -108,7 +113,7 @@
                      <dl class="space-y-4">
                         <div class="flex justify-between">
                             <dt class="text-sm font-medium text-gray-500">Subtotal</dt>
-                            <dd class="text-sm font-medium text-gray-900">₱<?= number_format($total_amount, 2); ?></dd>
+                            <dd class="text-sm font-medium text-gray-900">₱<?= number_format($invoice['total_amount'], 2); ?></dd>
                         </div>
                          <div class="flex justify-between">
                             <dt class="text-sm font-medium text-gray-500">Taxes (0%)</dt>
@@ -116,7 +121,7 @@
                         </div>
                          <div class="flex justify-between border-t border-gray-200 pt-4">
                             <dt class="text-lg font-bold text-gray-900">Total Amount</dt>
-                            <dd class="text-lg font-bold text-orange-600">₱<?= number_format($total_amount, 2); ?></dd>
+                            <dd class="text-lg font-bold text-orange-600">₱<?= number_format($invoice['total_amount'], 2); ?></dd>
                         </div>
                     </dl>
                 </div>

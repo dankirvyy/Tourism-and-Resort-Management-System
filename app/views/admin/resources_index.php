@@ -24,7 +24,11 @@
              <div class="px-4 py-5 sm:p-6">
                  <div class="sm:flex sm:items-center sm:justify-between mb-6">
                     <p class="text-sm text-gray-600">A list of all available resources (guides, vehicles, boats, etc.).</p>
-                    <div class="mt-3 sm:mt-0 sm:ml-4">
+                    <div class="mt-3 sm:mt-0 sm:ml-4 flex gap-2">
+                        <a href="<?= site_url('admin/resources/calendar') ?>" class="inline-flex items-center justify-center rounded-md border border-orange-600 bg-white px-4 py-2 text-sm font-medium text-orange-600 shadow-sm hover:bg-orange-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            View Calendar
+                        </a>
                         <a href="<?= site_url('admin/resources/add') ?>" class="inline-flex items-center justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700">
                             Add New Resource
                         </a>

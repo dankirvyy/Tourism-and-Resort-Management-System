@@ -97,7 +97,13 @@ $router->get('/admin/delete/{id}', 'Admin::delete_tour');
 $router->get('/admin/edit_tour/{id}', 'Admin::edit_tour');
 // Route to handle the update form submission
 $router->post('/admin/update_tour', 'Admin::update_tour');
-$router->get('/admin/invoice/view/{id}', 'Admin::invoice');
+
+// Invoice Routes
+$router->get('/admin/invoices', 'Admin::invoices');
+$router->get('/admin/invoice/view/{id}', 'Admin::view_invoice');
+$router->get('/admin/invoice/download/{id}', 'Admin::download_invoice');
+$router->get('/admin/invoice/mark-paid/{id}', 'Admin::mark_invoice_paid');
+$router->get('/admin/invoice/generate/{booking_id}', 'Admin::invoice');
 
 
 // Authentication Routes
@@ -153,6 +159,8 @@ $router->post('/admin/resources/save', 'Admin::save_resource');
 $router->get('/admin/resources/edit/{id}', 'Admin::edit_resource');
 $router->post('/admin/resources/update', 'Admin::update_resource');
 $router->get('/admin/resources/delete/{id}', 'Admin::delete_resource');
+$router->get('/admin/resources/calendar', 'Admin::resource_calendar');
+$router->post('/admin/resources/check-conflict', 'Admin::check_resource_conflict');
 
 
 // Tour Booking Routes
@@ -170,6 +178,14 @@ $router->get('/admin/tour-booking/unassign/{id}/{booking_id}', 'Admin::unassign_
 $router->get('/admin/guests', 'Admin::guests');
 $router->get('/admin/guest/view/{id}', 'Admin::view_guest');
 $router->get('/admin/guest/delete/{id}', 'Admin::delete_guest');
+
+// CRM Routes
+$router->get('/admin/crm/dashboard', 'Admin::crm_dashboard');
+$router->post('/admin/crm/update-guest/{id}', 'Admin::update_guest_crm');
+$router->post('/admin/crm/log-communication/{id}', 'Admin::log_communication');
+$router->get('/admin/crm/export-marketing-list', 'Admin::export_marketing_list');
+$router->get('/admin/crm/refresh-metrics', 'Admin::refresh_guest_metrics');
+$router->get('/admin/crm/refresh-metrics/{id}', 'Admin::refresh_guest_metrics');
 
 // Reports & Analytics Routes
 $router->get('/admin/reports', 'Admin::reports');

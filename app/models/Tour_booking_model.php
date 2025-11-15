@@ -17,6 +17,9 @@ class Tour_booking_model extends Model {
                 tour_bookings.number_of_pax,
                 tour_bookings.total_price,
                 tour_bookings.status,
+                tour_bookings.amount_paid,
+                tour_bookings.balance_due,
+                tour_bookings.payment_status,
                 guests.first_name,
                 guests.last_name,
                 tours.name as tour_name

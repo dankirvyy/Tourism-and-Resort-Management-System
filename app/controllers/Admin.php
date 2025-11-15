@@ -108,6 +108,114 @@ class Admin extends Controller {
     }
 
     // ---------------------------------------------------
+    // CRM (Customer Relationship Management) FEATURES
+    // ---------------------------------------------------
+
+    /**
+     * CRM Dashboard with guest segmentation and analytics
+     */
+    public function crm_dashboard() {
+        $data['stats'] = $this->Guest_model->get_crm_stats();
+        $data['vip_guests'] = $this->Guest_model->get_vip_guests();
+        $data['regular_guests'] = $this->Guest_model->get_by_type('regular');
+        $data['inactive_guests'] = $this->Guest_model->get_inactive_guests(90);
+        $data['birthday_guests'] = $this->Guest_model->get_birthday_guests();
+        $data['active_page'] = 'crm';
+        
+        $this->call->view('admin/crm_dashboard', $data);
+    }
+
+    /**
+     * Update guest CRM information
+     */
+    public function update_guest_crm($id) {
+        if ($this->form_validation->submitted()) {
+            $bind = [
+                'guest_type' => $this->io->post('guest_type'),
+                'notes' => $this->io->post('notes'),
+                'tags' => $this->io->post('tags'),
+                'marketing_consent' => $this->io->post('marketing_consent') ? 1 : 0,
+                'birthday' => $this->io->post('birthday'),
+                'address' => $this->io->post('address'),
+                'country' => $this->io->post('country')
+            ];
+
+            $this->Guest_model->update($id, $bind);
+            $this->session->set_flashdata('success', 'Guest CRM data updated successfully.');
+            redirect('/admin/guest/view/' . $id);
+        }
+    }
+
+    /**
+     * Log communication with a guest
+     */
+    public function log_communication($guest_id) {
+        if ($this->form_validation->submitted()) {
+            $type = $this->io->post('communication_type');
+            $subject = $this->io->post('subject');
+            $message = $this->io->post('message');
+            $admin_name = $this->session->userdata('admin_name') ?? 'Admin';
+
+            $this->Guest_model->log_communication($guest_id, $type, $subject, $message, $admin_name);
+            
+            $this->session->set_flashdata('success', 'Communication logged successfully.');
+            redirect('/admin/guest/view/' . $guest_id);
+        }
+    }
+
+    /**
+     * Export marketing list (guests who opted in)
+     */
+    public function export_marketing_list() {
+        $subscribers = $this->Guest_model->get_marketing_subscribers();
+        
+        // Set headers for CSV download
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=marketing_list_' . date('Y-m-d') . '.csv');
+        
+        $output = fopen('php://output', 'w');
+        
+        // CSV headers
+        fputcsv($output, ['First Name', 'Last Name', 'Email', 'Phone', 'Guest Type', 'Total Spent', 'Last Visit']);
+        
+        // CSV rows
+        foreach ($subscribers as $guest) {
+            fputcsv($output, [
+                $guest['first_name'],
+                $guest['last_name'],
+                $guest['email'],
+                $guest['phone_number'] ?? '',
+                ucfirst($guest['guest_type'] ?? 'new'),
+                number_format($guest['total_revenue'] ?? 0, 2),
+                $guest['last_visit_date'] ?? 'Never'
+            ]);
+        }
+        
+        fclose($output);
+        exit;
+    }
+
+    /**
+     * Update guest metrics (recalculate visits, revenue, etc.)
+     */
+    public function refresh_guest_metrics($guest_id = null) {
+        if ($guest_id) {
+            // Update single guest
+            $this->Guest_model->update_guest_metrics($guest_id);
+            $this->session->set_flashdata('success', 'Guest metrics refreshed.');
+            redirect('/admin/guest/view/' . $guest_id);
+        } else {
+            // Update all guests
+            $guests = $this->db->table('guests')->where('role', 'user')->get_all();
+            foreach ($guests as $guest) {
+                $this->Guest_model->update_guest_metrics($guest['id']);
+            }
+            $this->session->set_flashdata('success', 'All guest metrics refreshed successfully.');
+            redirect('/admin/crm/dashboard');
+        }
+    }
+
+    // ---------------------------------------------------
     // REPORTS & ANALYTICS (NEW)
     // ---------------------------------------------------
 
@@ -786,6 +894,48 @@ class Admin extends Controller {
              return;
         }
 
+        // Get the booking date for conflict check
+        $booking = $this->Tour_booking_model->find($tour_booking_id);
+        if (!$booking) {
+            redirect('/admin/tour-booking/manage/' . $tour_booking_id);
+            return;
+        }
+
+        // Check for conflicts
+        $conflicts = $this->db->raw("
+            SELECT 
+                r.name as resource_name,
+                t.name as tour_name,
+                tb.booking_date,
+                rs.start_time,
+                rs.end_time
+            FROM resource_schedules rs
+            INNER JOIN resources r ON rs.resource_id = r.id
+            INNER JOIN tour_bookings tb ON rs.tour_booking_id = tb.id
+            INNER JOIN tours t ON tb.tour_id = t.id
+            WHERE rs.resource_id = ?
+            AND tb.booking_date = ?
+            AND tb.status IN ('confirmed', 'pending')
+            AND (
+                (rs.start_time <= ? AND rs.end_time >= ?)
+                OR (rs.start_time <= ? AND rs.end_time >= ?)
+                OR (rs.start_time >= ? AND rs.end_time <= ?)
+            )
+        ", [
+            $resource_id, 
+            $booking['booking_date'],
+            $start_time, $start_time,
+            $end_time, $end_time,
+            $start_time, $end_time
+        ])->fetchAll(PDO::FETCH_ASSOC);
+
+        // If conflicts exist, redirect with error message
+        if (!empty($conflicts)) {
+            // You can store error in session here if you have flash message system
+            redirect('/admin/tour-booking/manage/' . $tour_booking_id);
+            return;
+        }
+
         $bind = [
             'resource_id' => $resource_id,
             'tour_booking_id' => $tour_booking_id,
@@ -809,6 +959,277 @@ class Admin extends Controller {
 
         // Redirect back to the manage page for that booking
         redirect('/admin/tour-booking/manage/' . $tour_booking_id);
+    }
+
+    /**
+     * Resource Calendar View with availability tracking
+     */
+    public function resource_calendar() {
+        // Get filter parameters
+        $type = $this->io->get('type');
+        $month = $this->io->get('month') ?: date('m');
+        $year = $this->io->get('year') ?: date('Y');
+        
+        // Get resource statistics
+        $data['stats'] = $this->get_resource_statistics($month, $year);
+        
+        // Get all resources with utilization
+        $data['resources'] = $this->get_resources_with_utilization($type, $month, $year);
+        
+        // Build calendar data
+        $data['calendar_days'] = $this->build_resource_calendar($month, $year, $type);
+        
+        $this->call->view('admin/resource_calendar', $data);
+    }
+
+    /**
+     * Get resource statistics
+     */
+    private function get_resource_statistics($month, $year) {
+        $stats = [];
+        
+        // Total resources
+        $stats['total'] = $this->db->table('resources')->count();
+        
+        // Available resources
+        $stats['available'] = $this->db->table('resources')->where('is_available', 1)->count();
+        
+        // Scheduled this month
+        $start_date = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
+        $end_date = date('Y-m-t', strtotime($start_date));
+        
+        $stats['scheduled_month'] = $this->db->raw("
+            SELECT COUNT(DISTINCT rs.resource_id)
+            FROM resource_schedules rs
+            INNER JOIN tour_bookings tb ON rs.tour_booking_id = tb.id
+            WHERE tb.booking_date BETWEEN ? AND ?
+            AND tb.status IN ('confirmed', 'pending')
+        ", [$start_date, $end_date])->fetch(PDO::FETCH_COLUMN);
+        
+        // Calculate utilization rate
+        $total_resource_days = $stats['total'] * date('t', strtotime($start_date));
+        $scheduled_days = $this->db->raw("
+            SELECT COUNT(*)
+            FROM resource_schedules rs
+            INNER JOIN tour_bookings tb ON rs.tour_booking_id = tb.id
+            WHERE tb.booking_date BETWEEN ? AND ?
+            AND tb.status IN ('confirmed', 'pending')
+        ", [$start_date, $end_date])->fetch(PDO::FETCH_COLUMN);
+        
+        $stats['utilization'] = $total_resource_days > 0 ? ($scheduled_days / $total_resource_days) * 100 : 0;
+        
+        return $stats;
+    }
+
+    /**
+     * Get resources with utilization data
+     */
+    private function get_resources_with_utilization($type, $month, $year) {
+        $query = $this->db->table('resources');
+        
+        if ($type) {
+            $query->where('type', $type);
+        }
+        
+        $resources = $query->get_all();
+        
+        // Add utilization and next booking for each resource
+        foreach ($resources as &$resource) {
+            // Get next booking
+            $next_booking = $this->db->raw("
+                SELECT tb.booking_date, t.name as tour_name
+                FROM resource_schedules rs
+                INNER JOIN tour_bookings tb ON rs.tour_booking_id = tb.id
+                INNER JOIN tours t ON tb.tour_id = t.id
+                WHERE rs.resource_id = ?
+                AND tb.booking_date >= CURDATE()
+                AND tb.status IN ('confirmed', 'pending')
+                ORDER BY tb.booking_date ASC
+                LIMIT 1
+            ", [$resource['id']])->fetch(PDO::FETCH_ASSOC);
+            
+            $resource['next_booking'] = $next_booking ? date('M d, Y', strtotime($next_booking['booking_date'])) . ' - ' . $next_booking['tour_name'] : null;
+            
+            // Calculate utilization for this month
+            $start_date = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
+            $end_date = date('Y-m-t', strtotime($start_date));
+            $days_in_month = date('t', strtotime($start_date));
+            
+            $scheduled_days = $this->db->raw("
+                SELECT COUNT(DISTINCT DATE(tb.booking_date))
+                FROM resource_schedules rs
+                INNER JOIN tour_bookings tb ON rs.tour_booking_id = tb.id
+                WHERE rs.resource_id = ?
+                AND tb.booking_date BETWEEN ? AND ?
+                AND tb.status IN ('confirmed', 'pending')
+            ", [$resource['id'], $start_date, $end_date])->fetch(PDO::FETCH_COLUMN);
+            
+            $resource['utilization'] = ($scheduled_days / $days_in_month) * 100;
+        }
+        
+        return $resources;
+    }
+
+    /**
+     * Build calendar data with schedules
+     */
+    private function build_resource_calendar($month, $year, $type) {
+        $calendar = [];
+        $first_day = mktime(0, 0, 0, $month, 1, $year);
+        $days_in_month = date('t', $first_day);
+        $day_of_week = date('w', $first_day);
+        
+        // Get all schedules for this month
+        $start_date = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
+        $end_date = date('Y-m-t', strtotime($start_date));
+        
+        $schedules_query = "
+            SELECT 
+                tb.booking_date,
+                r.name as resource_name,
+                r.type as resource_type,
+                t.name as tour_name,
+                CONCAT(g.first_name, ' ', g.last_name) as guest_name,
+                tb.status,
+                rs.start_time,
+                rs.end_time
+            FROM resource_schedules rs
+            INNER JOIN resources r ON rs.resource_id = r.id
+            INNER JOIN tour_bookings tb ON rs.tour_booking_id = tb.id
+            INNER JOIN tours t ON tb.tour_id = t.id
+            INNER JOIN guests g ON tb.guest_id = g.id
+            WHERE tb.booking_date BETWEEN ? AND ?
+            AND tb.status IN ('confirmed', 'pending')
+        ";
+        
+        if ($type) {
+            $schedules_query .= " AND r.type = ?";
+            $schedules = $this->db->raw($schedules_query, [$start_date, $end_date, $type])->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $schedules = $this->db->raw($schedules_query, [$start_date, $end_date])->fetchAll(PDO::FETCH_ASSOC);
+        }
+        
+        // Group schedules by date
+        $schedules_by_date = [];
+        foreach ($schedules as $schedule) {
+            $date = $schedule['booking_date'];
+            if (!isset($schedules_by_date[$date])) {
+                $schedules_by_date[$date] = [];
+            }
+            
+            // Add color and icon based on resource type
+            $schedule['color'] = $this->get_resource_color($schedule['resource_type']);
+            $schedule['icon'] = $this->get_resource_icon($schedule['resource_type']);
+            
+            $schedules_by_date[$date][] = $schedule;
+        }
+        
+        // Add previous month days to fill the first week
+        for ($i = 0; $i < $day_of_week; $i++) {
+            $prev_month_day = $days_in_month - $day_of_week + $i + 1;
+            $calendar[] = [
+                'day' => $prev_month_day,
+                'is_other_month' => true,
+                'is_today' => false,
+                'schedules' => []
+            ];
+        }
+        
+        // Add current month days
+        $today = date('Y-m-d');
+        for ($day = 1; $day <= $days_in_month; $day++) {
+            $current_date = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . str_pad($day, 2, '0', STR_PAD_LEFT);
+            
+            $calendar[] = [
+                'day' => $day,
+                'is_other_month' => false,
+                'is_today' => $current_date === $today,
+                'schedules' => $schedules_by_date[$current_date] ?? []
+            ];
+        }
+        
+        // Fill remaining cells
+        $remaining_cells = 42 - count($calendar);
+        for ($i = 1; $i <= $remaining_cells; $i++) {
+            $calendar[] = [
+                'day' => $i,
+                'is_other_month' => true,
+                'is_today' => false,
+                'schedules' => []
+            ];
+        }
+        
+        return $calendar;
+    }
+
+    /**
+     * Get color for resource type
+     */
+    private function get_resource_color($type) {
+        $colors = [
+            'Guide' => 'blue',
+            'Vehicle' => 'green',
+            'Boat' => 'cyan',
+            'Equipment' => 'purple'
+        ];
+        return $colors[$type] ?? 'gray';
+    }
+
+    /**
+     * Get icon for resource type
+     */
+    private function get_resource_icon($type) {
+        $icons = [
+            'Guide' => 'user',
+            'Vehicle' => 'car',
+            'Boat' => 'ship',
+            'Equipment' => 'tools'
+        ];
+        return $icons[$type] ?? 'circle';
+    }
+
+    /**
+     * Check for resource conflicts (prevent double-booking)
+     */
+    public function check_resource_conflict() {
+        $resource_id = $this->io->post('resource_id');
+        $booking_date = $this->io->post('booking_date');
+        $start_time = $this->io->post('start_time');
+        $end_time = $this->io->post('end_time');
+        
+        $conflicts = $this->db->raw("
+            SELECT 
+                r.name as resource_name,
+                t.name as tour_name,
+                tb.booking_date,
+                rs.start_time,
+                rs.end_time
+            FROM resource_schedules rs
+            INNER JOIN resources r ON rs.resource_id = r.id
+            INNER JOIN tour_bookings tb ON rs.tour_booking_id = tb.id
+            INNER JOIN tours t ON tb.tour_id = t.id
+            WHERE rs.resource_id = ?
+            AND tb.booking_date = ?
+            AND tb.status IN ('confirmed', 'pending')
+            AND (
+                (rs.start_time <= ? AND rs.end_time >= ?)
+                OR (rs.start_time <= ? AND rs.end_time >= ?)
+                OR (rs.start_time >= ? AND rs.end_time <= ?)
+            )
+        ", [
+            $resource_id, 
+            $booking_date,
+            $start_time, $start_time,
+            $end_time, $end_time,
+            $start_time, $end_time
+        ])->fetchAll(PDO::FETCH_ASSOC);
+        
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'has_conflict' => !empty($conflicts),
+                'conflicts' => $conflicts
+            ]));
     }
 
     // ---------------------------------------------------
@@ -851,25 +1272,8 @@ class Admin extends Controller {
             ];
             $this->Invoice_item_model->insert($room_item_data);
 
-            // 4. (OPTIONAL) Find and add any 'pending' tour bookings for this guest
-            $guest_tours = $this->db->table('tour_bookings')
-                                ->where('guest_id', $guest_id)
-                                ->where('status', 'pending')
-                                ->get_all();
-
-            foreach ($guest_tours as $tour_booking) {
-                $tour = $this->Tour_model->find($tour_booking['tour_id']);
-                $tour_item_data = [
-                    'invoice_id' => $invoice_id,
-                    'description' => 'Tour: ' . $tour['name'] . ' (' . $tour_booking['booking_date'] . ') - ' . $tour_booking['number_of_pax'] . ' pax',
-                    'quantity' => 1,
-                    'unit_price' => $tour_booking['total_price'],
-                    'total_price' => $tour_booking['total_price']
-                ];
-                $this->Invoice_item_model->insert($tour_item_data);
-                // Mark tour booking as 'confirmed' since it's now on the bill
-                $this->Tour_booking_model->update($tour_booking['id'], ['status' => 'confirmed']);
-            }
+            // NOTE: Removed auto-bundling of tour bookings into room invoices
+            // Each booking (room or tour) now gets its own separate invoice
         }
 
         // 5. Get all items and recalculate the total
@@ -880,6 +1284,165 @@ class Admin extends Controller {
         $data['invoice'] = $this->Invoice_model->find($invoice['id']); // Pass updated invoice info
 
         $this->call->view('admin/view_invoice', $data);
+    }
+
+    /**
+     * List all invoices
+     */
+    public function invoices() {
+        $data['invoices'] = $this->Invoice_model->get_all_invoices();
+        $data['stats'] = $this->Invoice_model->get_invoice_stats();
+        $data['active_page'] = 'invoices';
+        
+        $this->call->view('admin/invoices_index', $data);
+    }
+
+    /**
+     * View invoice details
+     */
+    public function view_invoice($invoice_id) {
+        $data['invoice'] = $this->Invoice_model->get_invoice_details($invoice_id);
+        
+        if (!$data['invoice']) {
+            $this->session->set_flashdata('error', 'Invoice not found.');
+            redirect('/admin/invoices');
+        }
+        
+        $this->call->view('admin/view_invoice', $data);
+    }
+
+    /**
+     * Mark invoice as paid
+     */
+    public function mark_invoice_paid($invoice_id) {
+        $this->Invoice_model->mark_as_paid($invoice_id);
+        
+        // Also update the related booking payment status
+        $invoice = $this->Invoice_model->find($invoice_id);
+        if ($invoice && $invoice['booking_id']) {
+            $this->Booking_model->update($invoice['booking_id'], [
+                'payment_status' => 'paid',
+                'amount_paid' => $invoice['total_amount'],
+                'balance_due' => 0
+            ]);
+        }
+        
+        $this->session->set_flashdata('success', 'Invoice marked as paid successfully.');
+        redirect('/admin/invoices');
+    }
+
+    /**
+     * Download invoice as PDF
+     */
+    public function download_invoice($invoice_id) {
+        $invoice = $this->Invoice_model->get_invoice_details($invoice_id);
+        
+        if (!$invoice) {
+            $this->session->set_flashdata('error', 'Invoice not found.');
+            redirect('/admin/invoices');
+        }
+
+        // Generate HTML for PDF
+        $html = $this->generate_invoice_html($invoice);
+        
+        // Set headers for PDF download
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="invoice-' . $invoice['id'] . '.pdf"');
+        
+        // For now, we'll output HTML (you can integrate a PDF library like TCPDF or DomPDF later)
+        echo $html;
+        exit;
+    }
+
+    /**
+     * Generate HTML for invoice (can be converted to PDF)
+     */
+    private function generate_invoice_html($invoice) {
+        ob_start();
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Invoice #<?= $invoice['id'] ?></title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 40px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .invoice-details { margin-bottom: 30px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                th { background-color: #f8f9fa; font-weight: bold; }
+                .total { font-size: 18px; font-weight: bold; text-align: right; }
+                .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Visit Mindoro</h1>
+                <h2>INVOICE</h2>
+                <p>Invoice #<?= $invoice['id'] ?></p>
+            </div>
+
+            <div class="invoice-details">
+                <table>
+                    <tr>
+                        <td style="width: 50%;">
+                            <strong>Bill To:</strong><br>
+                            <?= html_escape($invoice['first_name'] . ' ' . $invoice['last_name']) ?><br>
+                            <?= html_escape($invoice['email']) ?><br>
+                            <?php if ($invoice['phone_number']): ?>
+                                <?= html_escape($invoice['phone_number']) ?><br>
+                            <?php endif; ?>
+                        </td>
+                        <td style="width: 50%; text-align: right;">
+                            <strong>Invoice Date:</strong> <?= date('F d, Y', strtotime($invoice['issue_date'])) ?><br>
+                            <strong>Due Date:</strong> <?= date('F d, Y', strtotime($invoice['due_date'])) ?><br>
+                            <strong>Payment Status:</strong> <?= ucfirst($invoice['status']) ?>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($invoice['items'] as $item): ?>
+                        <tr>
+                            <td><?= html_escape($item['description']) ?></td>
+                            <td><?= $item['quantity'] ?></td>
+                            <td>₱<?= number_format($item['unit_price'], 2) ?></td>
+                            <td>₱<?= number_format($item['total_price'], 2) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <div class="total">
+                Total Amount: ₱<?= number_format($invoice['total_amount'], 2) ?>
+            </div>
+
+            <?php if ($invoice['payment_status'] === 'partial'): ?>
+                <div style="margin-top: 20px; text-align: right;">
+                    <p>Amount Paid: ₱<?= number_format($invoice['amount_paid'], 2) ?></p>
+                    <p style="color: red; font-weight: bold;">Balance Due: ₱<?= number_format($invoice['balance_due'], 2) ?></p>
+                </div>
+            <?php endif; ?>
+
+            <div class="footer">
+                <p>Thank you for choosing Visit Mindoro!</p>
+                <p>For inquiries, please contact us at info@visitmindoro.com</p>
+            </div>
+        </body>
+        </html>
+        <?php
+        return ob_get_clean();
     }
 }
 ?>

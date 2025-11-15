@@ -77,22 +77,20 @@
     </div>
 </header>
 
-    <div class="relative bg-gray-800 min-h-screen">
+    <div class="relative bg-gray-800">
         <div class="absolute inset-0">
             <img class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1506929562872-bb421503ef21?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Mindoro Beach">
-            <div class="absolute inset-0 bg-gray-900 bg-opacity-40" aria-hidden="true"></div>
+            <div class="absolute inset-0 bg-gray-800 mix-blend-multiply" aria-hidden="true"></div>
         </div>
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center min-h-screen">
-            <div class="py-32 md:py-40 lg:py-48">
-                <h1 class="text-5xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl xl:text-8xl">Discover the Beauty of Mindoro</h1>
-                <p class="mt-6 text-xl sm:text-2xl text-gray-100 max-w-3xl">Your gateway to unforgettable beaches, stunning waterfalls, and vibrant local culture. Book your adventure today!</p>
-                
-                <div class="mt-10 flex flex-col sm:flex-row gap-4">
-                    <a href="<?= site_url('rooms') ?>" class="inline-flex items-center justify-center rounded-md border border-transparent bg-orange-600 px-8 py-4 text-lg font-medium text-white shadow-lg hover:bg-orange-700 transition-all transform hover:scale-105">Book Your Stay</a>
-                    <a href="<?= site_url('tours') ?>" class="inline-flex items-center justify-center rounded-md border-2 border-white bg-white bg-opacity-10 px-8 py-4 text-lg font-medium text-white backdrop-blur-sm backdrop-filter hover:bg-opacity-20 transition-all">Explore Tours</a>
-                </div>
+        <div class="relative max-w-7xl mx-auto py-24 px-4 sm:py-32 sm:px-6 lg:px-8">
+            <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">Discover the Beauty of Mindoro</h1>
+            <p class="mt-6 text-xl text-indigo-100 max-w-3xl">Your gateway to unforgettable beaches, stunning waterfalls, and vibrant local culture. Book your adventure today!</p>
+            
+            <div class="mt-10">
+                <a href="<?= site_url('rooms') ?>" class="inline-block rounded-md border border-transparent bg-orange-600 px-8 py-3 text-base font-medium text-white hover:bg-orange-700">Book Your Stay</a>
+                <a href="<?= site_url('tours') ?>" class="ml-4 inline-block rounded-md border border-transparent bg-white bg-opacity-20 px-8 py-3 text-base font-medium text-white backdrop-blur-sm backdrop-filter hover:bg-opacity-30">Explore Tours</a>
             </div>
-        </div>
+            </div>
     </div>
 
     <section class="bg-gray-50 py-16">

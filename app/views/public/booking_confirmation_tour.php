@@ -147,9 +147,33 @@
                     <form id="tour-payment-form" action="<?= site_url('checkout/tour') ?>" method="GET">
                         <input type="hidden" name="payment_method" id="tour_payment_method_input" value="">
                         <input type="hidden" name="paypal_order_id" id="tour_paypal_order_id" value="">
+                        <input type="hidden" name="payment_type" id="tour_payment_type_input" value="full">
+                        <input type="hidden" name="amount_to_pay" id="tour_amount_to_pay_input" value="<?= $tour_booking['booking_data']['total_price'] ?>">
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Payment Option</label>
+                            <div class="flex items-center gap-4">
+                                <label class="cursor-pointer flex-1">
+                                    <input type="radio" name="payment_type_choice" value="full" class="payment-type-input peer hidden" checked />
+                                    <div class="flex flex-col p-4 rounded-lg border-2 border-gray-300 transition-all peer-checked:border-orange-600 peer-checked:ring-2 peer-checked:ring-orange-500 peer-checked:bg-orange-50">
+                                        <span class="text-sm font-semibold text-gray-900">Full Payment</span>
+                                        <span class="text-lg font-bold text-orange-600 mt-1">₱<?= number_format($tour_booking['booking_data']['total_price'], 2) ?></span>
+                                        <span class="text-xs text-gray-500 mt-1">Pay the full amount now</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer flex-1">
+                                    <input type="radio" name="payment_type_choice" value="downpayment" class="payment-type-input peer hidden" />
+                                    <div class="flex flex-col p-4 rounded-lg border-2 border-gray-300 transition-all peer-checked:border-orange-600 peer-checked:ring-2 peer-checked:ring-orange-500 peer-checked:bg-orange-50">
+                                        <span class="text-sm font-semibold text-gray-900">Downpayment (50%)</span>
+                                        <span class="text-lg font-bold text-orange-600 mt-1">₱<?= number_format($tour_booking['booking_data']['total_price'] * 0.5, 2) ?></span>
+                                        <span class="text-xs text-gray-500 mt-1">Pay remaining balance before tour</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
 
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Choose a payment method</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
                             <div class="flex items-center gap-4">
                                 <label class="cursor-pointer">
                                     <input type="radio" name="payment_method_choice" value="gcash" class="payment-method-input peer hidden" />
@@ -220,26 +244,61 @@
 <script>
     (function(){
         const pmInputs = document.querySelectorAll('#tour-payment-form .payment-method-input');
+        const ptInputs = document.querySelectorAll('.payment-type-input');
         const payBtn = document.getElementById('tour-pay-button');
         const paymentInput = document.getElementById('tour_payment_method_input');
+        const paymentTypeInput = document.getElementById('tour_payment_type_input');
+        const amountToPayInput = document.getElementById('tour_amount_to_pay_input');
         const gcashModal = document.getElementById('tour-gcash-modal');
         const closeGcashModal = document.getElementById('close-tour-gcash-modal');
         const paypalContainer = document.getElementById('tour-paypal-button-container');
         const paypalOrderIdInput = document.getElementById('tour_paypal_order_id');
         let selectedMethod = '';
+        let selectedPaymentType = 'full';
         let paypalInitialized = false;
+        const fullAmount = <?= $tour_booking['booking_data']['total_price'] ?>;
+        const downpaymentAmount = fullAmount * 0.5;
 
         if(!pmInputs.length || !payBtn || !paymentInput) return;
         
+        // Handle payment type selection
+        ptInputs.forEach(function(inp){
+            inp.addEventListener('change', function(e){
+                selectedPaymentType = e.target.value;
+                paymentTypeInput.value = selectedPaymentType;
+                const amount = selectedPaymentType === 'full' ? fullAmount : downpaymentAmount;
+                amountToPayInput.value = amount;
+                
+                // Reinitialize PayPal if needed
+                if (selectedMethod === 'paypal' && paypalInitialized) {
+                    document.getElementById('tour-paypal-button-container').innerHTML = '';
+                    paypalInitialized = false;
+                    initializePayPal();
+                }
+            });
+        });
+        
         // Initialize PayPal buttons with error handling
-        if (typeof paypal !== 'undefined') {
+        function initializePayPal() {
+            if (typeof paypal === 'undefined') return;
+            
+            // Always get the current amount based on selected payment type
+            const currentAmount = selectedPaymentType === 'full' ? fullAmount : downpaymentAmount;
+            const usdAmount = (currentAmount / 55).toFixed(2);
+            
+            console.log('Initializing PayPal with:', {
+                paymentType: selectedPaymentType,
+                phpAmount: currentAmount,
+                usdAmount: usdAmount
+            });
+            
             try {
                 paypal.Buttons({
                     createOrder: function(data, actions) {
                         return actions.order.create({
                             purchase_units: [{
                                 amount: {
-                                    value: '<?= number_format($tour_booking['booking_data']['total_price'] / 55, 2) // Convert PHP to USD approx ?>'
+                                    value: usdAmount
                                 }
                             }]
                         });
@@ -262,8 +321,6 @@
             } catch (error) {
                 console.error('PayPal initialization error:', error);
             }
-        } else {
-            console.warn('PayPal SDK not loaded. PayPal payments will not be available.');
         }
 
         pmInputs.forEach(function(inp){
@@ -274,16 +331,22 @@
                 
                 // Show/hide relevant payment UI
                 if (val === 'paypal') {
-                    if (paypalInitialized) {
-                        paypalContainer.classList.remove('hidden');
-                        payBtn.classList.add('hidden');
-                    } else {
+                    if (typeof paypal === 'undefined') {
                         alert('PayPal is not configured. Please contact support or use GCash payment method.');
                         // Reset selection
                         e.target.checked = false;
                         selectedMethod = '';
                         paymentInput.value = '';
+                        return;
                     }
+                    
+                    // Initialize PayPal only when user selects it
+                    if (!paypalInitialized) {
+                        initializePayPal();
+                    }
+                    
+                    paypalContainer.classList.remove('hidden');
+                    payBtn.classList.add('hidden');
                 } else if (val === 'gcash') {
                     paypalContainer.classList.add('hidden');
                     payBtn.classList.remove('hidden');

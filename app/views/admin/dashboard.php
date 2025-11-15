@@ -77,6 +77,22 @@
                 <p class="mt-1 text-sm text-gray-500">View & manage users.</p>
             </a>
 
+            <a href="<?= site_url('admin/crm/dashboard') ?>" class="group block p-6 bg-white rounded-xl shadow-lg transform hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center justify-center bg-cyan-100 rounded-full w-12 h-12">
+                    <i class="fa-solid fa-users-gear w-7 h-7 text-cyan-600"></i>
+                </div>
+                <h3 class="mt-4 text-lg font-semibold text-gray-800 group-hover:text-cyan-600">CRM Dashboard</h3>
+                <p class="mt-1 text-sm text-gray-500">Guest management & marketing.</p>
+            </a>
+
+            <a href="<?= site_url('admin/invoices') ?>" class="group block p-6 bg-white rounded-xl shadow-lg transform hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center justify-center bg-emerald-100 rounded-full w-12 h-12">
+                    <i class="fa-solid fa-file-invoice-dollar w-7 h-7 text-emerald-600"></i>
+                </div>
+                <h3 class="mt-4 text-lg font-semibold text-gray-800 group-hover:text-emerald-600">Invoices & Billing</h3>
+                <p class="mt-1 text-sm text-gray-500">View all invoices.</p>
+            </a>
+
             <a href="<?= site_url('admin/reports') ?>" class="group block p-6 bg-white rounded-xl shadow-lg transform hover:-translate-y-1 transition-all duration-300">
                 <div class="flex items-center justify-center bg-pink-100 rounded-full w-12 h-12">
                     <i class="fa-solid fa-chart-line w-7 h-7 text-pink-600"></i>

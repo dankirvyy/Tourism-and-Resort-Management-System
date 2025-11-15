@@ -39,6 +39,9 @@
                                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pax</th>
                                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
                                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Total Price</th>
+                                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Amount Paid</th>
+                                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Balance Due</th>
+                                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Payment Status</th>
                                             <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                                                 <span class="sr-only">Actions</span>
                                             </th>
@@ -66,17 +69,42 @@
                                                      </span>
                                                  </td>
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">₱<?= number_format($booking['total_price'], 2); ?></td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 font-medium">₱<?= number_format($booking['amount_paid'] ?? $booking['total_price'], 2); ?></td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                    <?php 
+                                                    $balance = $booking['balance_due'] ?? 0;
+                                                    echo $balance > 0 ? '₱' . number_format($balance, 2) : '—';
+                                                    ?>
+                                                </td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                                    <?php 
+                                                    $payment_status = $booking['payment_status'] ?? 'paid';
+                                                    $payment_colors = [
+                                                        'paid' => 'bg-green-100 text-green-800',
+                                                        'partial' => 'bg-orange-100 text-orange-800',
+                                                        'unpaid' => 'bg-red-100 text-red-800'
+                                                    ];
+                                                    $payment_color = $payment_colors[$payment_status] ?? 'bg-gray-100 text-gray-800';
+                                                    ?>
+                                                    <span class="px-2 py-1 rounded-full text-xs font-medium <?= $payment_color ?>">
+                                                        <?= ucfirst(html_escape($payment_status)); ?>
+                                                    </span>
+                                                </td>
                                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                                    <!-- Quick Status Update Dropdown -->
-                                                    <select onchange="if(this.value && confirm('Update tour booking status?')) { fetch('<?= site_url('admin/tour-booking/update-status/' . $booking['id']) ?>/' + this.value, {method: 'POST'}).then(() => location.reload()); }" class="inline-block mr-2 text-xs border rounded px-2 py-1">
-                                                        <option value="">Quick Status</option>
-                                                        <option value="confirmed" <?= $booking['status'] === 'confirmed' ? 'disabled' : '' ?>>Confirmed</option>
-                                                        <option value="completed" <?= $booking['status'] === 'completed' ? 'disabled' : '' ?>>Completed</option>
-                                                        <option value="cancelled" <?= $booking['status'] === 'cancelled' ? 'disabled' : '' ?>>Cancelled</option>
-                                                    </select>
-                                                    <a href="<?= site_url('admin/tour-booking/manage/' . $booking['id']) ?>" class="text-orange-600 hover:text-orange-900">
-                                                        Manage Resources
-                                                    </a>
+                                                    <?php if ($booking['status'] !== 'cancelled'): ?>
+                                                        <!-- Quick Status Update Dropdown -->
+                                                        <select onchange="if(this.value && confirm('Update tour booking status?')) { fetch('<?= site_url('admin/tour-booking/update-status/' . $booking['id']) ?>/' + this.value, {method: 'POST'}).then(() => location.reload()); }" class="inline-block mr-2 text-xs border rounded px-2 py-1">
+                                                            <option value="">Quick Status</option>
+                                                            <option value="confirmed" <?= $booking['status'] === 'confirmed' ? 'disabled' : '' ?>>Confirmed</option>
+                                                            <option value="completed" <?= $booking['status'] === 'completed' ? 'disabled' : '' ?>>Completed</option>
+                                                            <option value="cancelled">Cancelled</option>
+                                                        </select>
+                                                        <a href="<?= site_url('admin/tour-booking/manage/' . $booking['id']) ?>" class="text-orange-600 hover:text-orange-900">
+                                                            Manage Resources
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <span class="text-gray-400 text-xs">Cancelled</span>
+                                                    <?php endif; ?>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
