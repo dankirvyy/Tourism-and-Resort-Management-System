@@ -57,7 +57,16 @@ class Guest_model extends Model {
 
         $total_visits = ($booking_stats['visit_count'] ?? 0) + ($tour_stats['tour_count'] ?? 0);
         $total_revenue = ($booking_stats['revenue'] ?? 0) + ($tour_stats['tour_revenue'] ?? 0);
-        $last_visit = max($booking_stats['last_visit'] ?? '2000-01-01', $tour_stats['last_tour'] ?? '2000-01-01');
+        
+        // Determine last visit date - use NULL if no visits exist
+        $last_visit = null;
+        if ($booking_stats['last_visit'] || $tour_stats['last_tour']) {
+            $last_visit = max($booking_stats['last_visit'] ?? '2000-01-01', $tour_stats['last_tour'] ?? '2000-01-01');
+            // If still the placeholder date and no real visits, set to null
+            if ($last_visit === '2000-01-01') {
+                $last_visit = null;
+            }
+        }
 
         // Auto-classify guest type
         $guest_type = 'new';

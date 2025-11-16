@@ -97,7 +97,7 @@
                                                  </td>
                                                  <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                                      <!-- Quick Status Update Dropdown -->
-                                                     <select onchange="if(this.value && confirm('Update booking status?')) { fetch('<?= site_url('admin/booking/update-status/' . $booking['id']) ?>/' + this.value, {method: 'POST'}).then(() => location.reload()); }" class="inline-block mr-2 text-xs border rounded px-2 py-1">
+                                                     <select onchange="showStatusModal(<?= $booking['id'] ?>, this.value, 'booking')" class="inline-block mr-2 text-xs border rounded px-2 py-1">
                                                          <option value="">Quick Status</option>
                                                          <option value="confirmed" <?= $booking['status'] === 'confirmed' ? 'disabled' : '' ?>>Confirmed</option>
                                                          <option value="completed" <?= $booking['status'] === 'completed' ? 'disabled' : '' ?>>Completed</option>
@@ -117,5 +117,69 @@
             </div>
         </div>
          </div>
+
+    <!-- Status Update Modal -->
+    <div id="statusModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mx-auto">
+                    <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 text-center mt-4">Update Booking Status</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 text-center">
+                        Are you sure you want to update this booking status to <span id="statusText" class="font-semibold"></span>?
+                    </p>
+                </div>
+                <div class="flex gap-4 px-4 py-3">
+                    <button onclick="closeStatusModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Cancel
+                    </button>
+                    <button onclick="confirmStatusUpdate()" class="flex-1 px-4 py-2 bg-orange-600 text-white text-base font-medium rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pendingStatusUpdate = null;
+
+        function showStatusModal(bookingId, status, type) {
+            if (!status) return;
+            
+            pendingStatusUpdate = { bookingId, status, type };
+            document.getElementById('statusText').textContent = status.toUpperCase();
+            document.getElementById('statusModal').classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            document.getElementById('statusModal').classList.add('hidden');
+            // Reset the dropdown
+            document.querySelectorAll('select').forEach(select => select.value = '');
+            pendingStatusUpdate = null;
+        }
+
+        function confirmStatusUpdate() {
+            if (!pendingStatusUpdate) return;
+            
+            const { bookingId, status, type } = pendingStatusUpdate;
+            const url = '<?= site_url('admin/booking/update-status/') ?>' + bookingId + '/' + status;
+            
+            fetch(url, { method: 'POST' })
+                .then(() => {
+                    closeStatusModal();
+                    location.reload();
+                });
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('statusModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeStatusModal();
+        });
+    </script>
 </body>
 </html>

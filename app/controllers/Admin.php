@@ -33,6 +33,16 @@ class Admin extends Controller {
     private function auto_cleanup_expired_bookings() {
         $now = date('Y-m-d H:i:s');
         
+        // Get guest IDs that will be affected by auto-completion
+        $affected_bookings = $this->db->raw(
+            "SELECT DISTINCT guest_id 
+             FROM bookings 
+             WHERE status = 'confirmed' 
+             AND CONCAT(check_out_date, ' ', check_out_time) < :now
+             AND guest_id IS NOT NULL",
+            ['now' => $now]
+        )->fetchAll(PDO::FETCH_COLUMN);
+        
         // Update expired bookings to completed (considering both date and time)
         $this->db->raw(
             "UPDATE bookings 
@@ -41,6 +51,11 @@ class Admin extends Controller {
              AND CONCAT(check_out_date, ' ', check_out_time) < :now",
             ['now' => $now]
         );
+        
+        // Auto-refresh metrics for all affected guests
+        foreach ($affected_bookings as $guest_id) {
+            $this->Guest_model->update_guest_metrics($guest_id);
+        }
         
         // Free up rooms that no longer have active bookings
         $this->db->raw(
@@ -407,6 +422,11 @@ class Admin extends Controller {
                 $this->Room_model->update($booking['room_id'], ['status' => 'available']);
             }
             
+            // If completing, auto-refresh guest metrics for revenue tracking
+            if ($status === 'completed' && !empty($booking['guest_id'])) {
+                $this->Guest_model->update_guest_metrics($booking['guest_id']);
+            }
+            
             $this->session->set_flashdata('success', 'Booking status updated to ' . $status);
         }
         
@@ -424,8 +444,18 @@ class Admin extends Controller {
             return;
         }
         
-        $this->Tour_booking_model->update($id, ['status' => $status]);
-        $this->session->set_flashdata('success', 'Tour booking status updated to ' . $status);
+        $tour_booking = $this->Tour_booking_model->find($id);
+        
+        if ($tour_booking) {
+            $this->Tour_booking_model->update($id, ['status' => $status]);
+            
+            // If completing, auto-refresh guest metrics for revenue tracking
+            if ($status === 'completed' && !empty($tour_booking['guest_id'])) {
+                $this->Guest_model->update_guest_metrics($tour_booking['guest_id']);
+            }
+            
+            $this->session->set_flashdata('success', 'Tour booking status updated to ' . $status);
+        }
         
         redirect('/admin/tour-bookings');
     }
