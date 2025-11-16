@@ -123,8 +123,19 @@
                     </div>
                 </div>
 
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="agree_terms" name="agree_terms" type="checkbox" required class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-600">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="agree_terms" class="font-medium text-gray-700">
+                            I agree to the <a href="<?= site_url('terms-of-service') ?>" target="_blank" class="text-orange-600 hover:text-orange-500">Terms of Service</a> and <a href="<?= site_url('privacy-policy') ?>" target="_blank" class="text-orange-600 hover:text-orange-500">Privacy Policy</a>
+                        </label>
+                    </div>
+                </div>
+
                 <div>
-                    <button type="submit" class="flex w-full justify-center rounded-md bg-orange-600 py-2.5 px-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600">Create Account</button>
+                    <button id="signup-button" type="submit" disabled class="flex w-full justify-center rounded-md bg-gray-400 py-2.5 px-3 text-sm font-semibold text-white shadow-sm cursor-not-allowed transition-colors duration-200">Create Account</button>
                 </div>
             </form>
             <p class="mt-2 text-sm text-gray-600">
@@ -139,6 +150,7 @@
     </div>
 
     <script>
+        // Toggle password visibility
         document.querySelectorAll('.toggle-password').forEach(item => {
             item.addEventListener('click', function (e) {
                 const iconWrapper = e.currentTarget;
@@ -148,6 +160,22 @@
                 input.setAttribute('type', isPassword ? 'text' : 'password');
                 iconWrapper.classList.toggle('toggled');
             });
+        });
+
+        // Enable/disable submit button based on terms checkbox
+        const agreeTermsCheckbox = document.getElementById('agree_terms');
+        const signupButton = document.getElementById('signup-button');
+
+        agreeTermsCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                signupButton.disabled = false;
+                signupButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                signupButton.classList.add('bg-orange-600', 'hover:bg-orange-500', 'focus-visible:outline', 'focus-visible:outline-2', 'focus-visible:outline-offset-2', 'focus-visible:outline-orange-600');
+            } else {
+                signupButton.disabled = true;
+                signupButton.classList.remove('bg-orange-600', 'hover:bg-orange-500', 'focus-visible:outline', 'focus-visible:outline-2', 'focus-visible:outline-offset-2', 'focus-visible:outline-orange-600');
+                signupButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+            }
         });
     </script>
 </body>

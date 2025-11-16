@@ -425,19 +425,22 @@ class Auth extends Controller {
     }
 
     public function logout() {
-        // --- DESTROY ENTIRE SESSION FOR SECURITY ---
-        // This ensures all session data is cleared across all tabs
-        $this->session->sess_destroy();
-        // --- END SESSION DESTRUCTION ---
+        // Only destroy user session data, not admin
+        $this->session->unset_userdata('user_id');
+        $this->session->unset_userdata('user_name');
+        $this->session->unset_userdata('logged_in');
+        $this->session->unset_userdata('email');
         
         $this->session->set_flashdata('success', 'You have been logged out successfully.');
         redirect('/');
     }
 
     public function admin_logout() {
-        // --- DESTROY ENTIRE SESSION FOR SECURITY ---
-        $this->session->sess_destroy();
-        // --- END SESSION DESTRUCTION ---
+        // Only destroy admin session data, not user
+        $this->session->unset_userdata('admin_user_id');
+        $this->session->unset_userdata('admin_user_name');
+        $this->session->unset_userdata('admin_logged_in');
+        $this->session->unset_userdata('admin_email');
         
         $this->session->set_flashdata('success', 'You have been logged out successfully.');
         redirect('/login');

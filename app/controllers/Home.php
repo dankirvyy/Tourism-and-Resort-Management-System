@@ -11,6 +11,38 @@ class Home extends Controller {
         $this->call->model('Guest_model');
         $this->call->model('Booking_model');
         $this->call->model('Tour_booking_model');
+        
+        // Auto-cleanup expired bookings
+        $this->auto_cleanup_expired_bookings();
+    }
+    
+    /**
+     * Automatically process expired bookings on every page load
+     * Marks bookings as completed and frees up rooms when check-out date has passed
+     */
+    private function auto_cleanup_expired_bookings() {
+        $now = date('Y-m-d H:i:s');
+        
+        // Update expired bookings to completed (considering both date and time)
+        $this->db->raw(
+            "UPDATE bookings 
+             SET status = 'completed' 
+             WHERE status = 'confirmed' 
+             AND CONCAT(check_out_date, ' ', check_out_time) < :now",
+            ['now' => $now]
+        );
+        
+        // Free up rooms that no longer have active bookings
+        $this->db->raw(
+            "UPDATE rooms r
+             SET r.status = 'available'
+             WHERE r.status = 'occupied'
+             AND NOT EXISTS (
+                 SELECT 1 FROM bookings b
+                 WHERE b.room_id = r.id
+                 AND b.status = 'confirmed'
+             )"
+        );
     }
 
     private function get_room_types_with_availability($search = null, $sort = null) {
@@ -116,29 +148,59 @@ class Home extends Controller {
         $check_in = $this->io->get('checkin');
         $check_out = $this->io->get('checkout');
         
-        // If dates are provided, filter rooms by availability for those dates
+        // Get all rooms of this type with booking information
+        $sql = "SELECT r.*, 
+                       b.check_in_date, b.check_in_time, 
+                       b.check_out_date, b.check_out_time,
+                       CASE 
+                           WHEN b.id IS NULL THEN 1
+                           ELSE 0
+                       END as is_available
+                FROM rooms r
+                LEFT JOIN bookings b ON r.id = b.room_id 
+                    AND b.status = 'confirmed'
+                    AND CONCAT(b.check_out_date, ' ', b.check_out_time) > NOW()
+                WHERE r.room_type_id = ?
+                ORDER BY r.room_number";
+        
+        $all_rooms = $this->db->raw($sql, [$room_type_id])->fetchAll(PDO::FETCH_ASSOC);
+        
+        // If dates are provided, check which rooms have conflicts
         if ($check_in && $check_out) {
-            // Get rooms of this type that don't have conflicting bookings
-            $sql = "SELECT r.* 
-                    FROM rooms r
-                    WHERE r.room_type_id = ?
-                    AND r.status = 'available'
-                    AND NOT EXISTS (
-                        SELECT 1 FROM bookings b
-                        WHERE b.room_id = r.id
-                        AND b.status = 'confirmed'
-                        AND b.check_in_date < ?
-                        AND b.check_out_date > ?
-                    )";
-            $data['available_rooms'] = $this->db->raw($sql, [$room_type_id, $check_out, $check_in])->fetchAll(PDO::FETCH_ASSOC);
+            $check_in_datetime = $check_in . ' 14:00:00';
+            $check_out_datetime = $check_out . ' 12:00:00';
+            
+            foreach ($all_rooms as &$room) {
+                if ($room['check_in_date']) {
+                    $existing_checkin = $room['check_in_date'] . ' ' . $room['check_in_time'];
+                    $existing_checkout = $room['check_out_date'] . ' ' . $room['check_out_time'];
+                    
+                    // Check if there's an overlap
+                    if ($existing_checkin < $check_out_datetime && $existing_checkout > $check_in_datetime) {
+                        $room['has_conflict'] = true;
+                        $room['available_from'] = date('M j, Y \a\t g:i A', strtotime($existing_checkout));
+                    } else {
+                        $room['has_conflict'] = false;
+                    }
+                } else {
+                    $room['has_conflict'] = false;
+                }
+            }
+            
+            $data['available_rooms'] = $all_rooms;
             $data['selected_check_in'] = $check_in;
             $data['selected_check_out'] = $check_out;
         } else {
-            // No dates provided, just show all available rooms
-            $data['available_rooms'] = $this->db->table('rooms')
-                                                ->where('room_type_id', $room_type_id)
-                                                ->where('status', 'available')
-                                                ->get_all();
+            // No dates selected, show all rooms with their booking status
+            foreach ($all_rooms as &$room) {
+                if ($room['check_in_date']) {
+                    $room['has_conflict'] = true; // Can't book without dates
+                    $room['available_from'] = date('M j, Y \a\t g:i A', strtotime($room['check_out_date'] . ' ' . $room['check_out_time']));
+                } else {
+                    $room['has_conflict'] = false;
+                }
+            }
+            $data['available_rooms'] = $all_rooms;
             $data['selected_check_in'] = null;
             $data['selected_check_out'] = null;
         }
@@ -155,6 +217,8 @@ class Home extends Controller {
         $room_id = $this->io->post('room_id');
         $check_in = $this->io->post('checkin');
         $check_out = $this->io->post('checkout');
+        $check_in_time = $this->io->post('checkin_time') ?: '14:00:00';
+        $check_out_time = $this->io->post('checkout_time') ?: '12:00:00';
         
         // --- CHECK FOR BOOKING CONFLICTS ---
         if ($this->Booking_model->has_conflict($room_id, $check_in, $check_out)) {
@@ -195,6 +259,8 @@ class Home extends Controller {
                 'room_type_id' => $room_type_id,
                 'check_in_date' => $check_in,
                 'check_out_date' => $check_out,
+                'check_in_time' => $check_in_time,
+                'check_out_time' => $check_out_time,
                 'total_price' => $total_price,
                 'days' => ($days > 0 ? $days : 1)
             ]
@@ -604,6 +670,34 @@ class Home extends Controller {
         }
 
         redirect('/my-profile');
+    }
+    
+    /**
+     * Help Center page
+     */
+    public function help_center() {
+        $this->call->view('public/help_center');
+    }
+    
+    /**
+     * FAQ page
+     */
+    public function faq() {
+        $this->call->view('public/faq');
+    }
+    
+    /**
+     * Privacy Policy page
+     */
+    public function privacy_policy() {
+        $this->call->view('public/privacy_policy');
+    }
+    
+    /**
+     * Terms of Service page
+     */
+    public function terms_of_service() {
+        $this->call->view('public/terms_of_service');
     }
 }
 ?>

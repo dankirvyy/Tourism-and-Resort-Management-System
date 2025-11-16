@@ -63,6 +63,12 @@ $router->post('/profile/update', 'Home::update_profile');
 $router->post('/booking/cancel-room/{id}', 'Home::cancel_room_booking');
 $router->post('/booking/cancel-tour/{id}', 'Home::cancel_tour_booking');
 
+// Support Pages Routes
+$router->get('/help-center', 'Home::help_center');
+$router->get('/faq', 'Home::faq');
+$router->get('/privacy-policy', 'Home::privacy_policy');
+$router->get('/terms-of-service', 'Home::terms_of_service');
+
 // Admin Dashboard
 $router->get('/admin', 'Admin::dashboard');
 $router->get('/admin/dashboard', 'Admin::dashboard');

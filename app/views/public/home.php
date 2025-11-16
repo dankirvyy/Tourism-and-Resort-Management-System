@@ -5,6 +5,45 @@
     <title>Visit Mindoro: Tourism & Booking Management System</title>
     <link href="<?= site_url('public/css/output.css') ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .hero-section {
+            position: relative;
+            background-color: #1f2937;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            padding-top: 180px;
+        }
+        
+        .hero-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        
+        .hero-background img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #1f2937;
+            mix-blend-mode: multiply;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
    <header class="bg-white shadow-md sticky top-0 z-50">
@@ -77,20 +116,22 @@
     </div>
 </header>
 
-    <div class="relative bg-gray-800">
-        <div class="absolute inset-0">
-            <img class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1506929562872-bb421503ef21?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Mindoro Beach">
-            <div class="absolute inset-0 bg-gray-800 mix-blend-multiply" aria-hidden="true"></div>
+    <div class="hero-section">
+        <div class="hero-background">
+            <img src="https://images.unsplash.com/photo-1506929562872-bb421503ef21?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Mindoro Beach">
+            <div class="hero-overlay"></div>
         </div>
-        <div class="relative max-w-7xl mx-auto py-24 px-4 sm:py-32 sm:px-6 lg:px-8">
-            <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">Discover the Beauty of Mindoro</h1>
-            <p class="mt-6 text-xl text-indigo-100 max-w-3xl">Your gateway to unforgettable beaches, stunning waterfalls, and vibrant local culture. Book your adventure today!</p>
-            
-            <div class="mt-10">
-                <a href="<?= site_url('rooms') ?>" class="inline-block rounded-md border border-transparent bg-orange-600 px-8 py-3 text-base font-medium text-white hover:bg-orange-700">Book Your Stay</a>
-                <a href="<?= site_url('tours') ?>" class="ml-4 inline-block rounded-md border border-transparent bg-white bg-opacity-20 px-8 py-3 text-base font-medium text-white backdrop-blur-sm backdrop-filter hover:bg-opacity-30">Explore Tours</a>
+        <div class="hero-content max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div style="max-width: 800px;">
+                <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">Discover the Beauty of Mindoro</h1>
+                <p class="mt-6 text-xl text-indigo-100">Your gateway to unforgettable beaches, stunning waterfalls, and vibrant local culture. Book your adventure today!</p>
+                
+                <div class="mt-10">
+                    <a href="<?= site_url('rooms') ?>" class="inline-block rounded-md border border-transparent bg-orange-600 px-8 py-3 text-base font-medium text-white hover:bg-orange-700">Book Your Stay</a>
+                    <a href="<?= site_url('tours') ?>" class="ml-4 inline-block rounded-md border border-transparent bg-white bg-opacity-20 px-8 py-3 text-base font-medium text-white backdrop-blur-sm backdrop-filter hover:bg-opacity-30">Explore Tours</a>
+                </div>
             </div>
-            </div>
+        </div>
     </div>
 
     <section class="bg-gray-50 py-16">
@@ -281,10 +322,10 @@
             <div>
                 <h3 class="text-lg font-semibold text-white mb-4">Support</h3>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-sm hover:text-orange-400">Help Center</a></li>
-                    <li><a href="#" class="text-sm hover:text-orange-400">FAQs</a></li>
-                    <li><a href="#" class="text-sm hover:text-orange-400">Privacy Policy</a></li>
-                    <li><a href="#" class="text-sm hover:text-orange-400">Terms of Service</a></li>
+                    <li><a href="<?= site_url('help-center') ?>" class="text-sm hover:text-orange-400">Help Center</a></li>
+                    <li><a href="<?= site_url('faq') ?>" class="text-sm hover:text-orange-400">FAQs</a></li>
+                    <li><a href="<?= site_url('privacy-policy') ?>" class="text-sm hover:text-orange-400">Privacy Policy</a></li>
+                    <li><a href="<?= site_url('terms-of-service') ?>" class="text-sm hover:text-orange-400">Terms of Service</a></li>
                 </ul>
             </div>
             <div>

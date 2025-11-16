@@ -96,11 +96,17 @@
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Check-in</dt>
-                                    <dd class="text-sm font-medium text-gray-900"><?= date('F j, Y', strtotime($booking['booking_data']['check_in_date'])) ?></dd>
+                                    <dd class="text-sm font-medium text-gray-900">
+                                        <?= date('F j, Y', strtotime($booking['booking_data']['check_in_date'])) ?> 
+                                        at <?= date('g:i A', strtotime($booking['booking_data']['check_in_time'])) ?>
+                                    </dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Check-out</dt>
-                                    <dd class="text-sm font-medium text-gray-900"><?= date('F j, Y', strtotime($booking['booking_data']['check_out_date'])) ?></dd>
+                                    <dd class="text-sm font-medium text-gray-900">
+                                        <?= date('F j, Y', strtotime($booking['booking_data']['check_out_date'])) ?> 
+                                        at <?= date('g:i A', strtotime($booking['booking_data']['check_out_time'])) ?>
+                                    </dd>
                                 </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Duration</dt>

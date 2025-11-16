@@ -165,10 +165,10 @@
             <div>
                 <h3 class="text-lg font-semibold text-white mb-4">Support</h3>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-sm hover:text-orange-400">Help Center</a></li>
-                    <li><a href="#" class="text-sm hover:text-orange-400">FAQs</a></li>
-                    <li><a href="#" class="text-sm hover:text-orange-400">Privacy Policy</a></li>
-                    <li><a href="#" class="text-sm hover:text-orange-400">Terms of Service</a></li>
+                    <li><a href="<?= site_url('help-center') ?>" class="text-sm hover:text-orange-400">Help Center</a></li>
+                    <li><a href="<?= site_url('faq') ?>" class="text-sm hover:text-orange-400">FAQs</a></li>
+                    <li><a href="<?= site_url('privacy-policy') ?>" class="text-sm hover:text-orange-400">Privacy Policy</a></li>
+                    <li><a href="<?= site_url('terms-of-service') ?>" class="text-sm hover:text-orange-400">Terms of Service</a></li>
                 </ul>
             </div>
             <div>

@@ -21,6 +21,38 @@ class Admin extends Controller {
         $this->call->model('Resource_schedule_model');
         $this->call->model('Invoice_model'); 
         $this->call->model('Invoice_item_model');
+        
+        // Auto-cleanup expired bookings
+        $this->auto_cleanup_expired_bookings();
+    }
+    
+    /**
+     * Automatically process expired bookings
+     * Marks bookings as completed and frees up rooms when check-out date has passed
+     */
+    private function auto_cleanup_expired_bookings() {
+        $now = date('Y-m-d H:i:s');
+        
+        // Update expired bookings to completed (considering both date and time)
+        $this->db->raw(
+            "UPDATE bookings 
+             SET status = 'completed' 
+             WHERE status = 'confirmed' 
+             AND CONCAT(check_out_date, ' ', check_out_time) < :now",
+            ['now' => $now]
+        );
+        
+        // Free up rooms that no longer have active bookings
+        $this->db->raw(
+            "UPDATE rooms r
+             SET r.status = 'available'
+             WHERE r.status = 'occupied'
+             AND NOT EXISTS (
+                 SELECT 1 FROM bookings b
+                 WHERE b.room_id = r.id
+                 AND b.status = 'confirmed'
+             )"
+        );
     }
 
     // ---------------------------------------------------

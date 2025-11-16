@@ -236,7 +236,14 @@
 
         <div class="calendar-wrapper">
             <div class="calendar-header">
-                <h2 class="text-xl font-semibold text-gray-900">Resource Schedule Calendar</h2>
+                <h2 class="text-xl font-semibold text-gray-900" id="calendarTitle">
+                    <?php
+                    $months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    $current_month_name = $months[((int)date('m')) - 1];
+                    $current_year_name = date('Y');
+                    echo $current_month_name . ' ' . $current_year_name;
+                    ?>
+                </h2>
                 <div class="calendar-nav">
                     <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i> Prev</button>
                     <button onclick="goToToday()">Today</button>
@@ -364,6 +371,11 @@
     <script>
         let currentMonth = <?= (int)date('m') ?>;
         let currentYear = <?= (int)date('Y') ?>;
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        function updateCalendarTitle() {
+            document.getElementById('calendarTitle').textContent = monthNames[currentMonth - 1] + ' ' + currentYear;
+        }
         
         function changeMonth(delta) {
             currentMonth += delta;
@@ -379,6 +391,7 @@
             document.getElementById('monthFilter').value = currentMonth;
             document.getElementById('yearFilter').value = currentYear;
             
+            updateCalendarTitle();
             applyFilters();
         }
         
@@ -390,6 +403,7 @@
             document.getElementById('monthFilter').value = currentMonth;
             document.getElementById('yearFilter').value = currentYear;
             
+            updateCalendarTitle();
             applyFilters();
         }
         

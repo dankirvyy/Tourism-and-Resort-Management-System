@@ -104,12 +104,26 @@
                                 <?php if (!empty($available_rooms)): ?>
                                     <option value="" disabled selected>Choose a room...</option>
                                     <?php foreach ($available_rooms as $room): ?>
-                                        <option value="<?= $room['id']; ?>"><?= html_escape($room['room_number']); ?></option>
+                                        <?php if (isset($room['has_conflict']) && $room['has_conflict']): ?>
+                                            <option value="<?= $room['id']; ?>" disabled class="text-gray-400">
+                                                <?= html_escape($room['room_number']); ?> - Currently booked (Available from <?= $room['available_from'] ?>)
+                                            </option>
+                                        <?php else: ?>
+                                            <option value="<?= $room['id']; ?>">
+                                                <?= html_escape($room['room_number']); ?>
+                                                <?php if (isset($room['available_from'])): ?>
+                                                    - Currently booked, available from <?= $room['available_from'] ?>
+                                                <?php endif; ?>
+                                            </option>
+                                        <?php endif; ?>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <option value="" disabled selected>No rooms of this type are available</option>
                                 <?php endif; ?>
                             </select>
+                            <p class="mt-2 text-sm text-gray-500">
+                                <i class="fas fa-info-circle"></i> Select your check-in and check-out dates first to see room availability for your dates.
+                            </p>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -118,8 +132,20 @@
                                 <input type="date" name="checkin" id="checkin" value="<?= isset($selected_check_in) ? html_escape($selected_check_in) : '' ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
                             </div>
                             <div>
+                                <label for="checkin_time" class="block text-sm font-medium text-gray-700">Check-in Time</label>
+                                <input type="time" name="checkin_time" id="checkin_time" value="14:00" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">Standard check-in: 2:00 PM</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
                                 <label for="checkout" class="block text-sm font-medium text-gray-700">Check-out Date</label>
                                 <input type="date" name="checkout" id="checkout" value="<?= isset($selected_check_out) ? html_escape($selected_check_out) : '' ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="checkout_time" class="block text-sm font-medium text-gray-700">Check-out Time</label>
+                                <input type="time" name="checkout_time" id="checkout_time" value="12:00" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">Standard check-out: 12:00 PM</p>
                             </div>
                         </div>
                         <hr class="border-gray-200"/>
@@ -172,6 +198,37 @@
                 hamburgerIcon.classList.toggle('hidden');
                 closeIcon.classList.toggle('hidden');
             });
+            
+            // Auto-refresh room availability when dates change
+            const checkinInput = document.getElementById('checkin');
+            const checkoutInput = document.getElementById('checkout');
+            const roomTypeId = '<?= $room_type['id'] ?>';
+            
+            function refreshRoomAvailability() {
+                const checkin = checkinInput.value;
+                const checkout = checkoutInput.value;
+                
+                if (checkin && checkout) {
+                    // Redirect to reload with new date parameters
+                    const url = `<?= site_url('book/room/') ?>${roomTypeId}?checkin=${checkin}&checkout=${checkout}`;
+                    window.location.href = url;
+                }
+            }
+            
+            // Add event listeners for date changes
+            if (checkinInput && checkoutInput) {
+                checkinInput.addEventListener('change', function() {
+                    if (checkoutInput.value) {
+                        refreshRoomAvailability();
+                    }
+                });
+                
+                checkoutInput.addEventListener('change', function() {
+                    if (checkinInput.value) {
+                        refreshRoomAvailability();
+                    }
+                });
+            }
         });
     </script>
 </body>

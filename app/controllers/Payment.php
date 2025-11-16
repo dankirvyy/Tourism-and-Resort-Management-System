@@ -390,6 +390,8 @@ class Payment extends Controller {
         $selected_room_id = $booking['booking_data']['room_id'];
         $check_in = $booking['booking_data']['check_in_date'];
         $check_out = $booking['booking_data']['check_out_date'];
+        $check_in_time = $booking['booking_data']['check_in_time'] ?? '14:00:00';
+        $check_out_time = $booking['booking_data']['check_out_time'] ?? '12:00:00';
         
         // Default amount paid to full price if not provided
         if ($amount_paid === null) {
@@ -426,6 +428,8 @@ class Payment extends Controller {
                 'room_id' => $selected_room_id,
                 'check_in_date' => $check_in,
                 'check_out_date' => $check_out,
+                'check_in_time' => $check_in_time,
+                'check_out_time' => $check_out_time,
                 'total_price' => $booking['booking_data']['total_price'],
                 'amount_paid' => $amount_paid,
                 'balance_due' => $balance_due,
