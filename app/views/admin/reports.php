@@ -7,15 +7,37 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .printable-area, .printable-area * {
+                visibility: visible;
+            }
+            .printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                margin: 20mm;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <?php include 'partials/admin_nav.php'; ?>
 
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto px-4 py-8 printable-area">
         <h1 class="text-3xl font-bold text-gray-800 mb-6">Reports & Analytics</h1>
 
         <!-- Date Range Filter -->
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6 mb-6 no-print">
             <form action="<?= site_url('admin/reports') ?>" method="GET" class="flex flex-wrap gap-4 items-end">
                 <div class="flex-1 min-w-[200px]">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
@@ -34,6 +56,9 @@
                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
                     <i class="fas fa-download mr-2"></i>Export CSV
                 </a>
+                <button onclick="window.print()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-print mr-2"></i>Print Report
+                </button>
             </form>
         </div>
 

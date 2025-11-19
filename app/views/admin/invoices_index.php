@@ -157,7 +157,7 @@
                                                         <?php if ($invoice['status'] === 'unpaid'): ?>
                                                             <a href="<?= site_url('admin/invoice/mark-paid/' . $invoice['id']) ?>" 
                                                                class="text-green-600 hover:text-green-900"
-                                                               onclick="return confirm('Mark this invoice as paid?')">
+                                                               onclick="showMarkPaidModal(<?= $invoice['id'] ?>)">
                                                                 <i class="fas fa-check mr-1"></i>Mark Paid
                                                             </a>
                                                         <?php endif; ?>
@@ -180,5 +180,7 @@
             </div>
         </div>
     </div>
+    <?php include 'partials/delete_modal.php'; ?>
+    <?php include 'partials/mark_paid_modal.php'; ?>
 </body>
 </html>

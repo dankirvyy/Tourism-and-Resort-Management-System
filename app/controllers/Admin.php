@@ -1381,12 +1381,25 @@ class Admin extends Controller {
         
         // Also update the related booking payment status
         $invoice = $this->Invoice_model->find($invoice_id);
-        if ($invoice && $invoice['booking_id']) {
-            $this->Booking_model->update($invoice['booking_id'], [
-                'payment_status' => 'paid',
-                'amount_paid' => $invoice['total_amount'],
-                'balance_due' => 0
-            ]);
+        if ($invoice) {
+            // Room booking invoice
+            if (!empty($invoice['booking_id'])) {
+                $this->Booking_model->update($invoice['booking_id'], [
+                    'payment_status' => 'paid',
+                    'amount_paid' => $invoice['total_amount'],
+                    'balance_due' => 0
+                ]);
+            }
+
+            // Tour booking invoice
+            if (!empty($invoice['tour_booking_id'])) {
+                // Update the tour booking payment status and amounts
+                $this->Tour_booking_model->update($invoice['tour_booking_id'], [
+                    'payment_status' => 'paid',
+                    'amount_paid' => $invoice['total_amount'],
+                    'balance_due' => 0
+                ]);
+            }
         }
         
         $this->session->set_flashdata('success', 'Invoice marked as paid successfully.');

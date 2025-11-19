@@ -54,7 +54,7 @@
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><?= ucfirst(html_escape($room['status'])); ?></td>
                                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                                     <a href="<?= site_url('admin/rooms/edit/' . $room['id']) ?>" class="text-orange-600 hover:text-orange-900">Edit</a>
-                                                    <a href="<?= site_url('admin/rooms/delete/' . $room['id']) ?>" class="text-red-600 hover:text-red-900 ml-4" onclick="return confirm('Are you sure you want to delete this room?');">Delete</a>
+                                                    <a href="javascript:void(0)" onclick="showDeleteModal('room', <?= $room['id'] ?>)" class="text-red-600 hover:text-red-900 ml-4">Delete</a>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -67,5 +67,6 @@
             </div>
         </div>
          </div>
+    <?php include 'partials/delete_modal.php'; ?>
 </body>
 </html>

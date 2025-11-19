@@ -180,9 +180,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <?php if ($booking['status'] === 'confirmed'): ?>
-                                            <form method="POST" action="<?= site_url('booking/cancel-room/' . $booking['id']) ?>" onsubmit="return confirm('Are you sure you want to cancel this room booking?');" style="display: inline;">
-                                                <button type="submit" class="text-red-600 hover:text-red-900">Cancel Booking</button>
-                                            </form>
+                                            <button onclick="showCancelModal('room', <?= $booking['id'] ?>)" class="text-red-600 hover:text-red-900">Cancel Booking</button>
                                         <?php else: ?>
                                             <span class="text-gray-400">-</span>
                                         <?php endif; ?>
@@ -240,9 +238,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <?php if ($booking['status'] === 'confirmed'): ?>
-                                            <form method="POST" action="<?= site_url('booking/cancel-tour/' . $booking['id']) ?>" onsubmit="return confirm('Are you sure you want to cancel this tour booking?');" style="display: inline;">
-                                                <button type="submit" class="text-red-600 hover:text-red-900">Cancel Booking</button>
-                                            </form>
+                                            <button onclick="showCancelModal('tour', <?= $booking['id'] ?>)" class="text-red-600 hover:text-red-900">Cancel Booking</button>
                                         <?php else: ?>
                                             <span class="text-gray-400">-</span>
                                         <?php endif; ?>
@@ -307,7 +303,62 @@
     </section>
     <footer class="bg-white mt-12"><div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8"><p class="text-center text-base text-gray-400">&copy; <?= date('Y') ?> Visit Mindoro. All rights reserved.</p></div></footer>
 
+    <!-- Cancel Booking Modal -->
+    <div id="cancelModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mx-auto">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 text-center mt-4">Cancel Booking</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 text-center">
+                        Are you sure you want to cancel this booking? This action cannot be undone.
+                    </p>
+                </div>
+                <div class="flex gap-4 px-4 py-3">
+                    <button onclick="closeCancelModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Keep Booking
+                    </button>
+                    <button onclick="confirmCancelBooking()" class="flex-1 px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        Yes, Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let pendingCancellation = null;
+
+        function showCancelModal(type, bookingId) {
+            pendingCancellation = { type, bookingId };
+            document.getElementById('cancelModal').classList.remove('hidden');
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancelModal').classList.add('hidden');
+            pendingCancellation = null;
+        }
+
+        function confirmCancelBooking() {
+            if (!pendingCancellation) return;
+            
+            const { type, bookingId } = pendingCancellation;
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '<?= site_url("booking/cancel-") ?>' + type + '/' + bookingId;
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('cancelModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeCancelModal();
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             const mobileMenuButton = document.getElementById('mobile-menu-button');
             const mobileMenu = document.getElementById('mobile-menu');

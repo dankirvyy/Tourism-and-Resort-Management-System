@@ -94,7 +94,7 @@
                                     <?php if ($guest['role'] !== 'admin'): ?>
                                         <a href="<?= site_url('admin/guest/delete/' . $guest['id']) ?>" 
                                            class="text-red-600 hover:text-red-900"
-                                           onclick="return confirm('Are you sure you want to delete this guest?')">
+                                           onclick="showDeleteModal('guest', <?= $guest['id'] ?>)">
                                             <i class="fas fa-trash"></i> Delete
                                         </a>
                                     <?php endif; ?>
@@ -116,5 +116,6 @@
             Total Guests: <strong><?= count($guests) ?></strong>
         </div>
     </div>
+    <?php include 'partials/delete_modal.php'; ?>
 </body>
 </html>

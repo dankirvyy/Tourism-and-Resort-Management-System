@@ -239,6 +239,43 @@
             <p class="text-center text-base text-gray-400">&copy; <?= date('Y') ?> Visit Mindoro. All rights reserved.</p>
         </div>
     </footer>
+    <!-- Error Modal -->
+    <div id="errorModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mx-auto">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 text-center mt-4">Payment Error</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 text-center" id="errorMessage"></p>
+                </div>
+                <div class="flex justify-center px-4 py-3">
+                    <button onclick="closeErrorModal()" class="px-6 py-2 bg-orange-600 text-white text-base font-medium rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showErrorModal(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        function closeErrorModal() {
+            document.getElementById('errorModal').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('errorModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeErrorModal();
+        });
+    </script>
 </body>
 </html>
 <script>
@@ -311,7 +348,7 @@
                     },
                     onError: function(err) {
                         console.error('PayPal error:', err);
-                        alert('PayPal payment failed. Please try again or use another payment method.');
+                        showErrorModal('PayPal payment failed. Please try again or use another payment method.');
                     }
                 }).render('#tour-paypal-button-container').then(function() {
                     paypalInitialized = true;
@@ -332,7 +369,7 @@
                 // Show/hide relevant payment UI
                 if (val === 'paypal') {
                     if (typeof paypal === 'undefined') {
-                        alert('PayPal is not configured. Please contact support or use GCash payment method.');
+                        showErrorModal('PayPal is not configured. Please contact support or use GCash payment method.');
                         // Reset selection
                         e.target.checked = false;
                         selectedMethod = '';

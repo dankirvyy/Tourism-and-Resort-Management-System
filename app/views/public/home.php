@@ -43,6 +43,29 @@
             position: relative;
             z-index: 10;
         }
+
+        /* Feature Icons Styling */
+        .feature-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            border-radius: 50%;
+            background-color: #ea580c;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        .feature-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .feature-card:hover .feature-icon {
+            background-color: #c2410c;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -259,42 +282,53 @@
         </div>
     </div>
 
-    <section class="bg-white py-16">
+    <!-- Why Choose Us Section -->
+    <section class="bg-gradient-to-br from-orange-50 to-white py-16">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h2 class="text-3xl font-extrabold text-gray-900">What Our Guests Say</h2>
-                <p class="mt-4 text-lg text-gray-500">We're proud to have created unforgettable memories.</p>
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-extrabold text-gray-900">Why Choose Visit Mindoro</h2>
+                <p class="mt-4 text-lg text-gray-600">Experience the best of Mindoro with our exceptional services</p>
             </div>
-            <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-gray-50 p-6 rounded-lg shadow-lg">
-                    <div class="flex items-center mb-4">
-                        <img class="h-12 w-12 rounded-full" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=facearea&auto=format&q=80" alt="Testimonial user">
-                        <div class="ml-4">
-                            <p class="font-semibold text-gray-900">Alex R.</p>
-                            <p class="text-sm text-gray-500">Visited June 2024</p>
-                        </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Feature 1 -->
+                <div class="text-center group feature-card">
+                    <div class="feature-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
                     </div>
-                    <p class="text-base text-gray-600">"An amazing experience! The tour guides were so knowledgeable, and the room was beyond our expectations. We will be back!"</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">24/7 Support</h3>
+                    <p class="text-gray-600">Our dedicated team is always available to assist you with any inquiries or concerns.</p>
                 </div>
-                <div class="bg-gray-50 p-6 rounded-lg shadow-lg">
-                    <div class="flex items-center mb-4">
-                        <img class="h-12 w-12 rounded-full" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?fit=facearea&auto=format&q=80" alt="Testimonial user">
-                        <div class="ml-4">
-                            <p class="font-semibold text-gray-900">Maria S.</p>
-                            <p class="text-sm text-gray-500">Visited May 2024</p>
-                        </div>
+                <!-- Feature 2 -->
+                <div class="text-center group feature-card">
+                    <div class="feature-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
                     </div>
-                    <p class="text-base text-gray-600">"Booking was so simple. The 'My Profile' page made it easy to see all my reservations in one place. Highly recommend!"</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Easy Booking</h3>
+                    <p class="text-gray-600">Book your rooms and tours with just a few clicks through our user-friendly platform.</p>
                 </div>
-                <div class="bg-gray-50 p-6 rounded-lg shadow-lg">
-                     <div class="flex items-center mb-4">
-                        <img class="h-12 w-12 rounded-full" src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?fit=facearea&auto=format&q=80" alt="Testimonial user">
-                        <div class="ml-4">
-                            <p class="font-semibold text-gray-900">Chris J.</p>
-                            <p class="text-sm text-gray-500">Visited May 2024</p>
-                        </div>
+                <!-- Feature 3 -->
+                <div class="text-center group feature-card">
+                    <div class="feature-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
                     </div>
-                    <p class="text-base text-gray-600">"Mindoro is beautiful. The "Tamaraw Falls" tour was the highlight of our trip. Thank you, Visit Mindoro, for all the help."</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Best Prices</h3>
+                    <p class="text-gray-600">Enjoy competitive rates and special offers for an affordable vacation experience.</p>
+                </div>
+                <!-- Feature 4 -->
+                <div class="text-center group feature-card">
+                    <div class="feature-icon">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Local Expertise</h3>
+                    <p class="text-gray-600">Experience authentic Mindoro with our knowledgeable local guides and curated tours.</p>
                 </div>
             </div>
         </div>
