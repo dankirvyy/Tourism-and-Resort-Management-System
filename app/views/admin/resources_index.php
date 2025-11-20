@@ -45,7 +45,9 @@
                                             <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Name</th>
                                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Type</th>
                                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Capacity</th>
-                                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Availability</th>
+                                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Quantity</th>
+                                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Available</th>
+                                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
                                             <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                                                 <span class="sr-only">Actions</span>
                                             </th>
@@ -57,8 +59,14 @@
                                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"><?= html_escape($resource['name']); ?></td>
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><?= html_escape($resource['type']); ?></td>
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><?= $resource['capacity'] ? html_escape($resource['capacity']) : 'N/A'; ?></td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><?= html_escape($resource['quantity']); ?></td>
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                                    <?php if ($resource['is_available']): ?>
+                                                    <span class="font-medium <?= $resource['available_quantity'] > 0 ? 'text-green-600' : 'text-red-600' ?>">
+                                                        <?= html_escape($resource['available_quantity']); ?>
+                                                    </span>
+                                                </td>
+                                                <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                                    <?php if ($resource['available_quantity'] > 0): ?>
                                                         <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Available</span>
                                                     <?php else: ?>
                                                         <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">Unavailable</span>

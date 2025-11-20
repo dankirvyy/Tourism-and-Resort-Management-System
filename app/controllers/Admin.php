@@ -132,23 +132,20 @@ class Admin extends Controller {
     }
 
     /**
-     * Delete a guest (with confirmation)
+     * Suspend/Activate a guest account
      */
-    public function delete_guest($id) {
-        // Check if guest has any bookings
-        $has_bookings = $this->db->table('bookings')
-            ->where('guest_id', $id)
-            ->count() > 0;
+    public function suspend_guest($id) {
+        $guest = $this->Guest_model->find($id);
         
-        $has_tour_bookings = $this->db->table('tour_bookings')
-            ->where('guest_id', $id)
-            ->count() > 0;
-        
-        if ($has_bookings || $has_tour_bookings) {
-            $this->session->set_flashdata('error', 'Cannot delete guest with existing bookings. Cancel bookings first.');
+        if ($guest && $guest['role'] !== 'admin') {
+            // Toggle suspended status
+            $new_status = $guest['is_suspended'] ? 0 : 1;
+            $this->Guest_model->update($id, ['is_suspended' => $new_status]);
+            
+            $action = $new_status ? 'suspended' : 'activated';
+            $this->session->set_flashdata('success', "Guest account {$action} successfully.");
         } else {
-            $this->Guest_model->delete($id);
-            $this->session->set_flashdata('success', 'Guest deleted successfully.');
+            $this->session->set_flashdata('error', 'Cannot suspend admin accounts.');
         }
         
         redirect('/admin/guests');
@@ -447,7 +444,26 @@ class Admin extends Controller {
         $tour_booking = $this->Tour_booking_model->find($id);
         
         if ($tour_booking) {
+            $old_status = $tour_booking['status'];
+            
+            // Update the status
             $this->Tour_booking_model->update($id, ['status' => $status]);
+            
+            // If changing to completed or cancelled, release all assigned resources
+            if (($status === 'completed' || $status === 'cancelled') && 
+                ($old_status !== 'completed' && $old_status !== 'cancelled')) {
+                
+                // Get all resource IDs assigned to this booking
+                $resource_ids = $this->Resource_schedule_model->get_resource_ids_for_booking($id);
+                
+                // Increase quantity for each resource
+                foreach ($resource_ids as $resource_id) {
+                    $this->Resource_model->increase_quantity($resource_id, 1);
+                }
+                
+                // Delete all resource schedules for this booking
+                $this->Resource_schedule_model->delete_by_booking_id($id);
+            }
             
             // If completing, auto-refresh guest metrics for revenue tracking
             if ($status === 'completed' && !empty($tour_booking['guest_id'])) {
@@ -872,11 +888,14 @@ class Admin extends Controller {
 
     // Save a new resource
     public function save_resource() {
+        $quantity = $this->io->post('quantity', FILTER_VALIDATE_INT) ?: 1;
         $bind = [
             'name' => $this->io->post('name'),
             'type' => $this->io->post('type'),
-            'capacity' => $this->io->post('capacity', FILTER_VALIDATE_INT) ?: null, // Allow null capacity
-            'is_available' => $this->io->post('is_available') ? 1 : 0
+            'capacity' => $this->io->post('capacity', FILTER_VALIDATE_INT) ?: null,
+            'quantity' => $quantity,
+            'available_quantity' => $quantity, // Initially all are available
+            'is_available' => ($quantity > 0) ? 1 : 0
         ];
         $this->Resource_model->insert($bind);
         redirect('/admin/resources');
@@ -891,11 +910,20 @@ class Admin extends Controller {
     // Update an existing resource
     public function update_resource() {
         $id = $this->io->post('id');
+        $resource = $this->Resource_model->find($id);
+        $new_quantity = $this->io->post('quantity', FILTER_VALIDATE_INT) ?: 1;
+        
+        // Calculate how much to adjust available_quantity
+        $quantity_diff = $new_quantity - $resource['quantity'];
+        $new_available = max(0, min($resource['available_quantity'] + $quantity_diff, $new_quantity));
+        
         $bind = [
             'name' => $this->io->post('name'),
             'type' => $this->io->post('type'),
             'capacity' => $this->io->post('capacity', FILTER_VALIDATE_INT) ?: null,
-            'is_available' => $this->io->post('is_available') ? 1 : 0
+            'quantity' => $new_quantity,
+            'available_quantity' => $new_available,
+            'is_available' => ($new_available > 0) ? 1 : 0
         ];
         $this->Resource_model->update($id, $bind);
         redirect('/admin/resources');
@@ -933,8 +961,8 @@ class Admin extends Controller {
         $data['assigned_resources'] = $this->Resource_schedule_model->get_assigned_resources($id);
 
         // 3. Get all *available* resources that can be assigned
-        // We'll filter this more later, but for now, let's get all of them
-        $data['all_available_resources'] = $this->Resource_model->filter(['is_available' => 1])->get_all();
+        // Only show resources with available_quantity > 0
+        $data['all_available_resources'] = $this->Resource_model->get_available_resources();
         
         $this->call->view('admin/manage_tour_booking', $data);
     }
@@ -1007,6 +1035,9 @@ class Admin extends Controller {
 
         // Insert into the resource_schedules table using our model
         $this->Resource_schedule_model->insert($bind);
+        
+        // Decrease the available quantity for this resource
+        $this->Resource_model->decrease_quantity($resource_id, 1);
 
         // Redirect back to the manage page for that booking
         redirect('/admin/tour-booking/manage/' . $tour_booking_id);
@@ -1016,8 +1047,16 @@ class Admin extends Controller {
      * Un-assigns a resource from a tour booking
      */
     public function unassign_resource($schedule_id, $tour_booking_id) {
-        // Delete the schedule entry by its unique ID
-        $this->Resource_schedule_model->delete($schedule_id);
+        // Get the schedule to find resource_id before deleting
+        $schedule = $this->Resource_schedule_model->find($schedule_id);
+        
+        if ($schedule) {
+            // Delete the schedule entry by its unique ID
+            $this->Resource_schedule_model->delete($schedule_id);
+            
+            // Increase the available quantity for this resource
+            $this->Resource_model->increase_quantity($schedule['resource_id'], 1);
+        }
 
         // Redirect back to the manage page for that booking
         redirect('/admin/tour-booking/manage/' . $tour_booking_id);

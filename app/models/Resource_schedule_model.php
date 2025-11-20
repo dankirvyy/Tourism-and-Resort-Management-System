@@ -21,5 +21,32 @@ class Resource_schedule_model extends Model {
             ->where('resource_schedules.tour_booking_id', $tour_booking_id)
             ->get_all();
     }
+
+    /**
+     * Get all resource IDs assigned to a specific tour booking
+     *
+     * @param int $tour_booking_id
+     * @return array Array of resource IDs
+     */
+    public function get_resource_ids_for_booking($tour_booking_id) {
+        $results = $this->db->table($this->table)
+            ->select('resource_id')
+            ->where('tour_booking_id', $tour_booking_id)
+            ->get_all();
+        
+        return array_column($results, 'resource_id');
+    }
+
+    /**
+     * Delete all resource schedules for a tour booking
+     *
+     * @param int $tour_booking_id
+     * @return bool
+     */
+    public function delete_by_booking_id($tour_booking_id) {
+        return $this->db->table($this->table)
+            ->where('tour_booking_id', $tour_booking_id)
+            ->delete();
+    }
 }
 ?>

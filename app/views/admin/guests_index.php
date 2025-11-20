@@ -59,6 +59,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -84,6 +85,17 @@
                                         <?= ucfirst($guest['role']) ?>
                                     </span>
                                 </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php if ($guest['is_suspended']): ?>
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            Suspended
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            Active
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <?= isset($guest['created_at']) ? date('M d, Y', strtotime($guest['created_at'])) : 'N/A' ?>
                                 </td>
@@ -92,18 +104,22 @@
                                         <i class="fas fa-eye"></i> View
                                     </a>
                                     <?php if ($guest['role'] !== 'admin'): ?>
-                                        <a href="<?= site_url('admin/guest/delete/' . $guest['id']) ?>" 
-                                           class="text-red-600 hover:text-red-900"
-                                           onclick="showDeleteModal('guest', <?= $guest['id'] ?>)">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </a>
+                                        <?php if ($guest['is_suspended']): ?>
+                                            <a href="<?= site_url('admin/guest/suspend/' . $guest['id']) ?>" class="text-green-600 hover:text-green-900">
+                                                <i class="fas fa-check-circle"></i> Activate
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="<?= site_url('admin/guest/suspend/' . $guest['id']) ?>" class="text-yellow-600 hover:text-yellow-900">
+                                                <i class="fas fa-ban"></i> Suspend
+                                            </a>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
                                 No guests found.
                             </td>
                         </tr>

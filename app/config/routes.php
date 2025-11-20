@@ -183,7 +183,7 @@ $router->get('/admin/tour-booking/unassign/{id}/{booking_id}', 'Admin::unassign_
 // Guest Management Routes
 $router->get('/admin/guests', 'Admin::guests');
 $router->get('/admin/guest/view/{id}', 'Admin::view_guest');
-$router->get('/admin/guest/delete/{id}', 'Admin::delete_guest');
+$router->get('/admin/guest/suspend/{id}', 'Admin::suspend_guest');
 
 // CRM Routes
 $router->get('/admin/crm/dashboard', 'Admin::crm_dashboard');

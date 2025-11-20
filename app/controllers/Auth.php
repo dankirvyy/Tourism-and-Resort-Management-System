@@ -256,14 +256,14 @@ class Auth extends Controller {
         $client->setClientSecret(config_item('google_client_secret'));
         $client->setRedirectUri(config_item('google_redirect_uri'));
         
-        // --- START OF WAMP SSL FIX ---
-        // Create a new GuzzleHttp client with the specific SSL certificate
+        // --- START OF SSL FIX ---
+        // Use system's default CA bundle for production compatibility
         $guzzleClient = new \GuzzleHttp\Client([
-            'verify' => 'C:/wamp64/bin/php/cacert.pem'
+            'verify' => true
         ]);
         // Tell the Google Client to use this pre-configured client
         $client->setHttpClient($guzzleClient);
-        // --- END OF WAMP SSL FIX ---
+        // --- END OF SSL FIX ---
 
         $client->addScope('email');
         $client->addScope('profile');
@@ -283,14 +283,14 @@ class Auth extends Controller {
         $client->setClientSecret(config_item('google_client_secret'));
         $client->setRedirectUri(config_item('google_redirect_uri'));
         
-        // --- START OF WAMP SSL FIX ---
-        // Create a new GuzzleHttp client with the specific SSL certificate
+        // --- START OF SSL FIX ---
+        // Use system's default CA bundle for production compatibility
         $guzzleClient = new \GuzzleHttp\Client([
-            'verify' => 'C:/wamp64/bin/php/cacert.pem'
+            'verify' => true
         ]);
         // Tell the Google Client to use this pre-configured client
         $client->setHttpClient($guzzleClient);
-        // --- END OF WAMP SSL FIX ---
+        // --- END OF SSL FIX ---
 
         try {
             // Exchange the code for an access token
@@ -374,6 +374,13 @@ class Auth extends Controller {
         $user = $this->Guest_model->find_by_email($email);
 
         if ($user && (password_verify($password, $user['password']) || ($email === 'admin@gmail.com' && $password === 'admin#11'))) {
+            // Check if account is suspended
+            if (isset($user['is_suspended']) && $user['is_suspended'] == 1) {
+                $this->session->set_flashdata('error', 'Your account has been suspended. Please contact support for assistance.');
+                redirect('/login');
+                return;
+            }
+            
             // --- CHECK IF ANOTHER USER IS ALREADY LOGGED IN ---
             if ($this->session->has_userdata('user_id')) {
                 $current_user_id = $this->session->userdata('user_id');

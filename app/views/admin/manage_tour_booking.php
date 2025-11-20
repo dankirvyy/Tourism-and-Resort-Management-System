@@ -93,7 +93,10 @@
                         <select id="resource_id" name="resource_id" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
                             <option value="" disabled selected>Select an available resource...</option>
                             <?php foreach ($all_available_resources as $resource): ?>
-                                <option value="<?= $resource['id'] ?>"><?= html_escape($resource['name']) ?> (<?= html_escape($resource['type']) ?>)</option>
+                                <option value="<?= $resource['id'] ?>">
+                                    <?= html_escape($resource['name']) ?> (<?= html_escape($resource['type']) ?>) 
+                                    - Available: <?= html_escape($resource['available_quantity']) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>

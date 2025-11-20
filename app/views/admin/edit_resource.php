@@ -37,12 +37,19 @@
                                 <p class="mt-1 text-xs text-gray-500">Leave blank if capacity is not applicable.</p>
                             </div>
 
-                            <div class="relative flex items-start">
-                                <div class="flex h-5 items-center">
-                                     <input id="is_available" name="is_available" type="checkbox" value="1" <?= $resource['is_available'] ? 'checked' : ''; ?> class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
-                                </div>
-                                <div class="ml-3 text-sm">
-                                    <label for="is_available" class="font-medium text-gray-700">Is Currently Available?</label>
+                            <div>
+                                <label for="quantity" class="block text-sm font-medium text-gray-700">Total Quantity</label>
+                                <input type="number" name="quantity" id="quantity" value="<?= html_escape($resource['quantity']); ?>" min="<?= html_escape($resource['quantity'] - $resource['available_quantity']); ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-500">Currently assigned: <?= html_escape($resource['quantity'] - $resource['available_quantity']); ?> | Available: <?= html_escape($resource['available_quantity']); ?></p>
+                            </div>
+
+                            <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                                <div class="flex">
+                                    <div class="ml-3">
+                                        <p class="text-sm text-blue-700">
+                                            <strong>Note:</strong> You can increase the total quantity, but you cannot reduce it below the currently assigned amount (<?= html_escape($resource['quantity'] - $resource['available_quantity']); ?>).
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

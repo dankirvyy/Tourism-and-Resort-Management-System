@@ -58,15 +58,10 @@ if (!function_exists('send_booking_confirmation')) {
             'Content-Length: ' . strlen($jsonData)
         ]);
         
-        // 3. (THE FIX) Set the SSL certificate path directly in cURL
-        // This forces it to use the correct file and bypasses php.ini issues.
-        $cacert_path = "C:/wamp64/bin/php/cacert.pem";
-        if (file_exists($cacert_path)) {
-            curl_setopt($ch, CURLOPT_CAINFO, $cacert_path);
-        } else {
-            error_log("SendGrid cURL Error: cacert.pem file not found at " . $cacert_path);
-            return false;
-        }
+        // 3. (THE FIX) Use system's default CA bundle for SSL verification
+        // This ensures compatibility across different environments (local/production)
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 
 
         // 4. Execute and get response
