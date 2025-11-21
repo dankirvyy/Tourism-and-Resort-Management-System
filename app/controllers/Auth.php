@@ -405,6 +405,11 @@ class Auth extends Controller {
                 $this->session->set_userdata('admin_user_name', $user['first_name']);
                 $this->session->set_userdata('admin_user_role', 'admin');
                 redirect('/admin/dashboard');
+            } elseif ($user['role'] === 'front_desk') {
+                $this->session->set_userdata('front_desk_user_id', $user['id']);
+                $this->session->set_userdata('front_desk_user_name', $user['first_name']);
+                $this->session->set_userdata('front_desk_user_role', 'front_desk');
+                redirect('/frontdesk/dashboard');
             } else {
                 $this->session->set_userdata('user_id', $user['id']);
                 $this->session->set_userdata('user_name', $user['first_name']);
@@ -450,7 +455,17 @@ class Auth extends Controller {
         $this->session->unset_userdata('admin_email');
         
         $this->session->set_flashdata('success', 'You have been logged out successfully.');
-        redirect('/login');
+        redirect('/');
+    }
+
+    public function frontdesk_logout() {
+        // Only destroy front desk session data
+        $this->session->unset_userdata('front_desk_user_id');
+        $this->session->unset_userdata('front_desk_user_name');
+        $this->session->unset_userdata('front_desk_user_role');
+        
+        $this->session->set_flashdata('success', 'You have been logged out successfully.');
+        redirect('/');
     }
 }
 ?>

@@ -669,7 +669,10 @@ class Admin extends Controller {
             'name' => $this->io->post('name'),
             'description' => $this->io->post('description'),
             'base_price' => $this->io->post('base_price'),
-            'capacity' => $this->io->post('capacity')
+            'capacity' => $this->io->post('capacity'),
+            'location' => $this->io->post('location'),
+            'latitude' => $this->io->post('latitude') ?: null,
+            'longitude' => $this->io->post('longitude') ?: null
         ];
 
         // Handle Image Upload
@@ -704,7 +707,10 @@ class Admin extends Controller {
             'name' => $this->io->post('name'),
             'description' => $this->io->post('description'),
             'base_price' => $this->io->post('base_price'),
-            'capacity' => $this->io->post('capacity')
+            'capacity' => $this->io->post('capacity'),
+            'location' => $this->io->post('location'),
+            'latitude' => $this->io->post('latitude') ?: null,
+            'longitude' => $this->io->post('longitude') ?: null
         ];
 
         // Handle Image Upload (Optional Update)
@@ -852,16 +858,25 @@ class Admin extends Controller {
         if ($booking) {
             $room_id = $booking['room_id'];
 
-            // Before marking the room available, ensure there are no other bookings
-            // that still reference this room (defensive for concurrent bookings).
-            $otherBookings = $this->db->table('bookings')
-                                     ->where('room_id', $room_id)
-                                     ->where('id !=', $id)
-                                     ->count();
+            // Only update room status if a room was assigned
+            if ($room_id) {
+                // Before marking the room available, ensure there are no other bookings
+                // that still reference this room (defensive for concurrent bookings).
+                $allBookingsWithRoom = $this->db->table('bookings')
+                                         ->where('room_id', $room_id)
+                                         ->get_all();
+                
+                $otherBookings = 0;
+                foreach ($allBookingsWithRoom as $b) {
+                    if ($b['id'] != $id) {
+                        $otherBookings++;
+                    }
+                }
 
-            if ($otherBookings == 0) {
-                // Safe to mark as available
-                $this->Room_model->update($room_id, ['status' => 'available']);
+                if ($otherBookings == 0) {
+                    // Safe to mark as available
+                    $this->Room_model->update($room_id, ['status' => 'available']);
+                }
             }
 
             // Finally, delete the booking itself

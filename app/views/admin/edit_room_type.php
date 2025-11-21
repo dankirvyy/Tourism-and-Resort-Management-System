@@ -40,6 +40,18 @@
                                 <input type="number" name="capacity" id="capacity" value="<?= html_escape($room_type['capacity']); ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
                             </div>
                             <div>
+                                <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
+                                <input type="text" name="location" id="location" value="<?= html_escape($room_type['location'] ?? ''); ?>" placeholder="e.g., Calapan City, Puerto Galera, Victoria" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="latitude" class="block text-sm font-medium text-gray-700">Latitude</label>
+                                <input type="number" step="0.00000001" name="latitude" id="latitude" value="<?= html_escape($room_type['latitude'] ?? ''); ?>" placeholder="e.g., 13.4116" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="longitude" class="block text-sm font-medium text-gray-700">Longitude</label>
+                                <input type="number" step="0.00000001" name="longitude" id="longitude" value="<?= html_escape($room_type['longitude'] ?? ''); ?>" placeholder="e.g., 121.1798" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
+                            </div>
+                            <div>
                                 <label for="image" class="block text-sm font-medium text-gray-700">Image</label>
                                 <input type="file" name="image" id="image" accept="image/png, image/jpeg, image/gif" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100">
                                 <?php if (isset($room_type['image_filename']) && $room_type['image_filename']): ?>

@@ -387,7 +387,7 @@ class Payment extends Controller {
      * Step 3 (Room): Save to DB and send email (Moved from Home.php)
      */
     private function finalize_room_booking($booking, $payment_type = 'full', $amount_paid = null) {
-        $selected_room_id = $booking['booking_data']['room_id'];
+        $room_type_id = $booking['booking_data']['room_type_id'];
         $check_in = $booking['booking_data']['check_in_date'];
         $check_out = $booking['booking_data']['check_out_date'];
         $check_in_time = $booking['booking_data']['check_in_time'] ?? '14:00:00';
@@ -398,97 +398,72 @@ class Payment extends Controller {
             $amount_paid = $booking['booking_data']['total_price'];
         }
         
-        // --- FINAL CONFLICT CHECK (Prevents race conditions) ---
-        if ($this->Booking_model->has_conflict($selected_room_id, $check_in, $check_out)) {
+        $guest_data = $booking['guest_data'];
+        $guest = $this->Guest_model->find_by_email($guest_data['email']);
+        $guest_id = $guest ? $guest['id'] : $this->session->userdata('user_id');
+        
+        // Determine payment status based on payment type
+        $payment_status = $payment_type === 'downpayment' ? 'partial' : 'paid';
+        $balance_due = $booking['booking_data']['total_price'] - $amount_paid;
+
+        $final_booking_data = [
+            'guest_id' => $guest_id,
+            'room_id' => null, // Will be assigned by front desk
+            'room_type_id' => $room_type_id,
+            'check_in_date' => $check_in,
+            'check_out_date' => $check_out,
+            'check_in_time' => $check_in_time,
+            'check_out_time' => $check_out_time,
+            'total_price' => $booking['booking_data']['total_price'],
+            'amount_paid' => $amount_paid,
+            'balance_due' => $balance_due,
+            'payment_status' => $payment_status,
+            'status' => 'pending' // Will be confirmed when front desk assigns room
+        ];
+
+        $booking_id = $this->Booking_model->insert($final_booking_data);
+
+        if ($booking_id) {
+            // --- Create Invoice ---
+            $this->create_room_invoice($booking_id, $booking, null, $final_booking_data);
+
+            // --- Send Confirmation Email ---
+            $subject = "Your Visit Mindoro Room Booking Payment Received!";
+            $title = "Booking Payment Received!";
+            $guest_name = $guest_data['first_name'];
+            
+            if ($payment_type === 'downpayment') {
+                $intro_message = "Thank you! Your downpayment has been processed. Your booking is pending confirmation and room assignment by our front desk staff.";
+            } else {
+                $intro_message = "Thank you! Your payment has been processed. Your booking is pending confirmation and room assignment by our front desk staff.";
+            }
+            
+            $details = [
+                'Room Type' => $booking['room_type_data']['name'],
+                'Room Number' => 'Will be assigned at check-in',
+                'Check-in' => date('F j, Y', strtotime($final_booking_data['check_in_date'])) . ' at ' . date('g:i A', strtotime($check_in_time)),
+                'Check-out' => date('F j, Y', strtotime($final_booking_data['check_out_date'])) . ' at ' . date('g:i A', strtotime($check_out_time)),
+                'Total Price' => 'PHP ' . number_format($final_booking_data['total_price'], 2),
+                'Amount Paid' => 'PHP ' . number_format($amount_paid, 2)
+            ];
+            
+            if ($payment_type === 'downpayment') {
+                $details['Balance Due'] = 'PHP ' . number_format($balance_due, 2) . ' (Pay on arrival)';
+            }
+            
+            $call_to_action = "We look forward to seeing you!";
+
+            $message = generate_email_template($title, $guest_name, $intro_message, $details, $call_to_action);
+            $email_sent = send_booking_confirmation($guest_data['email'], $subject, $message);
+            error_log("Room booking email sent status: " . ($email_sent ? 'success' : 'failed') . " to " . $guest_data['email']);
+            // --- End Email ---
+
             $this->session->unset_userdata('pending_booking');
-            $this->session->unset_userdata('paymongo_source_id');
             $this->session->unset_userdata('paypal_order_id');
             $this->session->unset_userdata('payment_type');
             $this->session->unset_userdata('amount_to_pay');
-            $this->session->set_flashdata('error', 
-                'Sorry, this room was just booked by another guest while you were completing payment. Your payment was successful and will be refunded. Please select another room or different dates.');
-            redirect('/rooms');
-            return;
-        }
-        // --- END FINAL CONFLICT CHECK ---
-        
-        $room_to_book = $this->Room_model->find($selected_room_id);
 
-        if($room_to_book && $room_to_book['status'] === 'available') {
-            $guest_data = $booking['guest_data'];
-            $guest = $this->Guest_model->find_by_email($guest_data['email']);
-            $guest_id = $guest ? $guest['id'] : $this->session->userdata('user_id');
-            
-            // Determine payment status based on payment type
-            $payment_status = $payment_type === 'downpayment' ? 'partial' : 'paid';
-            $balance_due = $booking['booking_data']['total_price'] - $amount_paid;
-
-            $final_booking_data = [
-                'guest_id' => $guest_id,
-                'room_id' => $selected_room_id,
-                'check_in_date' => $check_in,
-                'check_out_date' => $check_out,
-                'check_in_time' => $check_in_time,
-                'check_out_time' => $check_out_time,
-                'total_price' => $booking['booking_data']['total_price'],
-                'amount_paid' => $amount_paid,
-                'balance_due' => $balance_due,
-                'payment_status' => $payment_status,
-                'status' => 'confirmed' // Set to CONFIRMED
-            ];
-
-            $booking_id = $this->Booking_model->insert($final_booking_data);
-
-            if ($booking_id) {
-                $this->Room_model->update($selected_room_id, ['status' => 'occupied']);
-
-                // --- Create Invoice ---
-                $this->create_room_invoice($booking_id, $booking, $room_to_book, $final_booking_data);
-
-                // --- Send Confirmation Email ---
-                $subject = "Your Visit Mindoro Room Booking is Confirmed!";
-                $title = "Room Booking Confirmed!";
-                $guest_name = $guest_data['first_name'];
-                
-                if ($payment_type === 'downpayment') {
-                    $intro_message = "Thank you! Your downpayment has been processed and your booking is confirmed. Here are your details:";
-                } else {
-                    $intro_message = "Thank you! Your payment has been processed and your booking is confirmed. Here are your details:";
-                }
-                
-                $details = [
-                    'Room Type' => $booking['room_type_data']['name'],
-                    'Room Number' => $room_to_book['room_number'],
-                    'Check-in' => date('F j, Y', strtotime($final_booking_data['check_in_date'])),
-                    'Check-out' => date('F j, Y', strtotime($final_booking_data['check_out_date'])),
-                    'Total Price' => 'PHP ' . number_format($final_booking_data['total_price'], 2),
-                    'Amount Paid' => 'PHP ' . number_format($amount_paid, 2)
-                ];
-                
-                if ($payment_type === 'downpayment') {
-                    $details['Balance Due'] = 'PHP ' . number_format($balance_due, 2) . ' (Pay on arrival)';
-                }
-                
-                $call_to_action = "We look forward to seeing you!";
-
-                $message = generate_email_template($title, $guest_name, $intro_message, $details, $call_to_action);
-                $email_sent = send_booking_confirmation($guest_data['email'], $subject, $message);
-                error_log("Room booking email sent status: " . ($email_sent ? 'success' : 'failed') . " to " . $guest_data['email']);
-                // --- End Email ---
-
-                $this->session->unset_userdata('pending_booking');
-                $this->session->unset_userdata('paypal_order_id');
-                $this->session->unset_userdata('payment_type');
-                $this->session->unset_userdata('amount_to_pay');
-
-                $this->call->view('public/payment_success');
-            }
-        } else {
-            // This is rare, but means the room was taken while they were paying
-            $this->session->unset_userdata('pending_booking');
-            $this->session->unset_userdata('paymongo_source_id');
-            $this->session->set_flashdata('error', 'That room was just booked by someone else. Your payment was not processed. Please select another room.');
-            redirect('/book/room/' . $booking['booking_data']['room_type_id']);
+            $this->call->view('public/payment_success');
         }
     }
 
@@ -619,7 +594,7 @@ class Payment extends Controller {
             'amount_paid' => $amount_paid,
             'balance_due' => $balance_due,
             'payment_status' => $payment_status,
-            'status' => 'confirmed' // Set to CONFIRMED
+            'status' => 'pending' // Will be confirmed by admin
         ];
 
         $tour_booking_id = $this->db->table('tour_bookings')->insert($final_tour_booking_data);
@@ -629,14 +604,14 @@ class Payment extends Controller {
             $this->create_tour_invoice($tour_booking_id, $tour_booking, $final_tour_booking_data);
 
             // --- Send Confirmation Email ---
-            $subject = "Your Visit Mindoro Tour Booking is Confirmed!";
-            $title = "Tour Booking Confirmed!";
+            $subject = "Your Visit Mindoro Tour Booking Payment Received!";
+            $title = "Tour Booking Payment Received!";
             $guest_name = $guest_data['first_name'];
             
             if ($payment_type === 'downpayment') {
-                $intro_message = "Thank you! Your downpayment has been processed and your tour booking is confirmed. Here are your details:";
+                $intro_message = "Thank you! Your downpayment has been processed. Your tour booking is pending verification by our admin. Here are your details:";
             } else {
-                $intro_message = "Thank you! Your payment has been processed and your tour booking is confirmed. Here are your details:";
+                $intro_message = "Thank you! Your payment has been processed. Your tour booking is pending verification by our admin. Here are your details:";
             }
             
             $details = [
@@ -794,10 +769,13 @@ class Payment extends Controller {
             $checkout_date = new DateTime($final_booking_data['check_out_date']);
             $nights = $checkout_date->diff($checkin_date)->format("%a");
             
+            // Build room description - show room number if assigned, otherwise show "To be assigned"
+            $room_info = $room ? ' (Room ' . $room['room_number'] . ')' : ' (Room to be assigned at check-in)';
+            
             // Add invoice item for the room booking
             $item_data = [
                 'invoice_id' => $invoice_id,
-                'description' => $booking['room_type_data']['name'] . ' (RM ' . $room['room_number'] . ') - ' . 
+                'description' => $booking['room_type_data']['name'] . $room_info . ' - ' . 
                                date('Y-m-d', strtotime($final_booking_data['check_in_date'])) . ' to ' . 
                                date('Y-m-d', strtotime($final_booking_data['check_out_date'])),
                 'quantity' => max(1, $nights), // Number of nights

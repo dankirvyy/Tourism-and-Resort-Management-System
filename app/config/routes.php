@@ -48,6 +48,7 @@ $router->get('/', 'Home::index');
 $router->get('/rooms', 'Home::rooms');
 $router->get('/tours', 'Home::tours');
 $router->get('/contact', 'Home::contact');
+$router->post('/contact/send', 'Home::send_contact');
 $router->get('/book/room/{id}', 'Home::book');
 $router->post('/book/process', 'Home::process_booking');
 $router->get('/booking/success', 'Home::booking_success');
@@ -184,6 +185,12 @@ $router->get('/admin/tour-booking/unassign/{id}/{booking_id}', 'Admin::unassign_
 $router->get('/admin/guests', 'Admin::guests');
 $router->get('/admin/guest/view/{id}', 'Admin::view_guest');
 $router->get('/admin/guest/suspend/{id}', 'Admin::suspend_guest');
+
+// Front Desk Routes
+$router->get('/frontdesk/dashboard', 'FrontDesk::dashboard');
+$router->get('/frontdesk/assign/{id}', 'FrontDesk::assign_room');
+$router->post('/frontdesk/process-assignment', 'FrontDesk::process_assignment');
+$router->get('/frontdesk/logout', 'Auth::frontdesk_logout');
 
 // CRM Routes
 $router->get('/admin/crm/dashboard', 'Admin::crm_dashboard');

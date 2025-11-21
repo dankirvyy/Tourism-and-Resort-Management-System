@@ -161,7 +161,11 @@
                             <?php foreach ($room_bookings as $booking): ?>
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        <?= html_escape($booking['room_number'] . ' (' . $booking['room_type_name'] . ')'); ?>
+                                        <?php if ($booking['room_number']): ?>
+                                            <?= html_escape($booking['room_number'] . ' (' . $booking['room_type_name'] . ')'); ?>
+                                        <?php else: ?>
+                                            <?= html_escape($booking['room_type_name'] . ' (Room to be assigned)'); ?>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <?= html_escape($booking['check_in_date']); ?> to <?= html_escape($booking['check_out_date']); ?>
@@ -179,7 +183,7 @@
                                         ₱<?= number_format($booking['total_price'], 2); ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <?php if ($booking['status'] === 'confirmed'): ?>
+                                        <?php if ($booking['status'] === 'confirmed' || $booking['status'] === 'pending'): ?>
                                             <button onclick="showCancelModal('room', <?= $booking['id'] ?>)" class="text-red-600 hover:text-red-900">Cancel Booking</button>
                                         <?php else: ?>
                                             <span class="text-gray-400">-</span>

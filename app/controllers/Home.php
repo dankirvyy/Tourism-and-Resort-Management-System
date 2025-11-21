@@ -45,7 +45,7 @@ class Home extends Controller {
         );
     }
 
-    private function get_room_types_with_availability($search = null, $sort = null) {
+    private function get_room_types_with_availability($search = null, $sort = null, $location = null) {
         
         // Ensure room statuses are in sync with bookings.
         // This handles cases where a booking row was deleted directly in phpMyAdmin
@@ -64,6 +64,11 @@ class Home extends Controller {
 
         // Start the query for room types
         $this->db->table('room_types');
+
+        // If a location is provided, filter by location
+        if (!empty($location)) {
+            $this->db->where('location', $location);
+        }
 
         // If a search term is provided, filter by name OR description
         if (!empty($search)) {
@@ -112,22 +117,69 @@ class Home extends Controller {
 	}
     
     public function rooms() {
-        // MODIFIED: Get search and sort parameters from the URL
+        // MODIFIED: Get search, sort, and location parameters from the URL
         $search = $this->io->get('search'); // Get ?search=...
         $sort = $this->io->get('sort');     // Get ?sort=...
+        $location = $this->io->get('location'); // Get ?location=...
         
-        // Pass both parameters to our updated function
-        $data['room_types'] = $this->get_room_types_with_availability($search, $sort);
+        // Pass all parameters to our updated function
+        $data['room_types'] = $this->get_room_types_with_availability($search, $sort, $location);
+        
+        // Get unique locations for the filter dropdown
+        $data['locations'] = $this->db->table('room_types')
+            ->select('DISTINCT location')
+            ->where_not_null('location')
+            ->order_by('location', 'ASC')
+            ->get_all();
         
         // Pass the parameters to the view
         $data['search_term'] = $search; 
-        $data['sort_term'] = $sort; 
+        $data['sort_term'] = $sort;
+        $data['location_term'] = $location;
 
         $this->call->view('public/rooms', $data);
     }
 
     public function contact() {
         $this->call->view('public/contact');
+    }
+
+    public function send_contact() {
+        $name = $this->io->post('name');
+        $email = $this->io->post('email');
+        $subject = $this->io->post('subject');
+        $message_text = $this->io->post('message');
+
+        if (empty($name) || empty($email) || empty($subject) || empty($message_text)) {
+            $this->session->set_flashdata('error', 'All fields are required.');
+            redirect('/contact');
+            return;
+        }
+
+        // Send email to admin
+        $admin_email = 'dankirvymanongsong@gmail.com'; // Change to actual admin email
+        $email_subject = "Contact Form: " . $subject;
+        $title = "New Contact Form Submission";
+        $intro_message = "You have received a new message from your website contact form.";
+        
+        $details = [
+            'Name' => $name,
+            'Email' => $email,
+            'Subject' => $subject,
+            'Message' => nl2br(html_escape($message_text))
+        ];
+        
+        $call_to_action = "Please respond to this inquiry at your earliest convenience by replying to: " . $email;
+        
+        $message_html = generate_email_template($title, 'Admin', $intro_message, $details, $call_to_action);
+        
+        if (send_booking_confirmation($admin_email, $email_subject, $message_html)) {
+            $this->session->set_flashdata('success', 'Thank you for contacting us! We will get back to you soon.');
+        } else {
+            $this->session->set_flashdata('error', 'Failed to send message. Please try again later.');
+        }
+        
+        redirect('/contact');
     }
 
     public function book($room_type_id) {
@@ -214,30 +266,10 @@ class Home extends Controller {
 
     public function process_booking() {
         $room_type_id = $this->io->post('room_type_id');
-        $room_id = $this->io->post('room_id');
         $check_in = $this->io->post('checkin');
         $check_out = $this->io->post('checkout');
         $check_in_time = $this->io->post('checkin_time') ?: '14:00:00';
         $check_out_time = $this->io->post('checkout_time') ?: '12:00:00';
-        
-        // --- CHECK FOR BOOKING CONFLICTS ---
-        if ($this->Booking_model->has_conflict($room_id, $check_in, $check_out)) {
-            // Get conflict details for better error message
-            $conflicts = $this->Booking_model->get_conflicts($room_id, $check_in, $check_out);
-            $conflict_dates = '';
-            if (!empty($conflicts)) {
-                $first_conflict = $conflicts[0];
-                $conflict_dates = ' (Already booked from ' . 
-                    date('M j, Y', strtotime($first_conflict['check_in_date'])) . ' to ' . 
-                    date('M j, Y', strtotime($first_conflict['check_out_date'])) . ')';
-            }
-            
-            $this->session->set_flashdata('error', 
-                'This room is not available for the selected dates.' . $conflict_dates . ' Please choose different dates or another room.');
-            redirect('/book/room/' . $room_type_id);
-            return;
-        }
-        // --- END CONFLICT CHECK ---
         
         $room_type = $this->Room_type_model->find($room_type_id);
         $price = $room_type['base_price'];
@@ -255,7 +287,6 @@ class Home extends Controller {
             ],
             'room_type_data' => $room_type,
             'booking_data' => [
-                'room_id' => $room_id,
                 'room_type_id' => $room_type_id,
                 'check_in_date' => $check_in,
                 'check_out_date' => $check_out,

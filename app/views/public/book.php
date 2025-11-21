@@ -98,32 +98,14 @@
                     <form action="<?= site_url('book/process') ?>" method="POST" class="mt-6 space-y-6">
                         <input type="hidden" name="room_type_id" value="<?= $room_type['id'] ?>">
 
-                        <div>
-                            <label for="room_id" class="block text-sm font-medium text-gray-700">Select an Available Room</label>
-                            <select id="room_id" name="room_id" required class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-orange-500 focus:outline-none focus:ring-orange-500 sm:text-sm">
-                                <?php if (!empty($available_rooms)): ?>
-                                    <option value="" disabled selected>Choose a room...</option>
-                                    <?php foreach ($available_rooms as $room): ?>
-                                        <?php if (isset($room['has_conflict']) && $room['has_conflict']): ?>
-                                            <option value="<?= $room['id']; ?>" disabled class="text-gray-400">
-                                                <?= html_escape($room['room_number']); ?> - Currently booked (Available from <?= $room['available_from'] ?>)
-                                            </option>
-                                        <?php else: ?>
-                                            <option value="<?= $room['id']; ?>">
-                                                <?= html_escape($room['room_number']); ?>
-                                                <?php if (isset($room['available_from'])): ?>
-                                                    - Currently booked, available from <?= $room['available_from'] ?>
-                                                <?php endif; ?>
-                                            </option>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <option value="" disabled selected>No rooms of this type are available</option>
-                                <?php endif; ?>
-                            </select>
-                            <p class="mt-2 text-sm text-gray-500">
-                                <i class="fas fa-info-circle"></i> Select your check-in and check-out dates first to see room availability for your dates.
-                            </p>
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                            <div class="flex">
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        <strong>Note:</strong> Your specific room will be assigned by our front desk upon check-in based on availability.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -170,7 +152,7 @@
                             <input type="text" name="phone" id="phone" value="<?= isset($guest['phone_number']) ? html_escape($guest['phone_number']) : '' ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
                         </div>
                         <div>
-                            <button type="submit" class="w-full inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-gray-400 disabled:cursor-not-allowed" <?= empty($available_rooms) ? 'disabled' : '' ?>>
+                            <button type="submit" class="w-full inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
                                 Submit Reservation
                             </button>
                         </div>
@@ -202,33 +184,16 @@
             // Auto-refresh room availability when dates change
             const checkinInput = document.getElementById('checkin');
             const checkoutInput = document.getElementById('checkout');
-            const roomTypeId = '<?= $room_type['id'] ?>';
             
-            function refreshRoomAvailability() {
-                const checkin = checkinInput.value;
-                const checkout = checkoutInput.value;
-                
-                if (checkin && checkout) {
-                    // Redirect to reload with new date parameters
-                    const url = `<?= site_url('book/room/') ?>${roomTypeId}?checkin=${checkin}&checkout=${checkout}`;
-                    window.location.href = url;
+            // Set minimum dates
+            const today = new Date().toISOString().split('T')[0];
+            if (checkinInput) checkinInput.setAttribute('min', today);
+            
+            checkinInput?.addEventListener('change', function() {
+                if (this.value) {
+                    checkoutInput.setAttribute('min', this.value);
                 }
-            }
-            
-            // Add event listeners for date changes
-            if (checkinInput && checkoutInput) {
-                checkinInput.addEventListener('change', function() {
-                    if (checkoutInput.value) {
-                        refreshRoomAvailability();
-                    }
-                });
-                
-                checkoutInput.addEventListener('change', function() {
-                    if (checkinInput.value) {
-                        refreshRoomAvailability();
-                    }
-                });
-            }
+            });
         });
     </script>
 </body>

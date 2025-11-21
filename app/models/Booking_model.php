@@ -42,10 +42,11 @@ class Booking_model extends Model {
                 bookings.total_price,
                 bookings.status,
                 rooms.room_number,
-                room_types.name as room_type_name
+                COALESCE(room_types.name, room_types_direct.name) as room_type_name
             ')
             ->left_join('rooms', 'bookings.room_id = rooms.id')
             ->left_join('room_types', 'rooms.room_type_id = room_types.id')
+            ->left_join('room_types as room_types_direct', 'bookings.room_type_id = room_types_direct.id')
             ->where('bookings.guest_id', $guest_id) // Filter by guest ID
             ->order_by('bookings.check_in_date', 'DESC')
             ->get_all();

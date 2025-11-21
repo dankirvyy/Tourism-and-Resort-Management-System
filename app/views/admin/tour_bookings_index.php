@@ -48,7 +48,8 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 bg-white">
-                                        <?php foreach ($tour_bookings as $booking): ?>
+                                        <?php if (!empty($tour_bookings)): ?>
+                                            <?php foreach ($tour_bookings as $booking): ?>
                                             <tr>
                                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6"><?= html_escape($booking['first_name'] . ' ' . $booking['last_name']); ?></td>
                                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"><?= html_escape($booking['tour_name']); ?></td>
@@ -95,6 +96,7 @@
                                                         <!-- Quick Status Update Dropdown -->
                                                         <select onchange="showStatusModal(<?= $booking['id'] ?>, this.value, 'tour')" class="inline-block mr-2 text-xs border rounded px-2 py-1">
                                                             <option value="">Quick Status</option>
+                                                            <option value="pending" <?= $booking['status'] === 'pending' ? 'disabled' : '' ?>>Pending</option>
                                                             <option value="confirmed" <?= $booking['status'] === 'confirmed' ? 'disabled' : '' ?>>Confirmed</option>
                                                             <option value="completed" <?= $booking['status'] === 'completed' ? 'disabled' : '' ?>>Completed</option>
                                                             <option value="cancelled">Cancelled</option>
@@ -108,6 +110,13 @@
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="10" class="px-6 py-8 text-center text-gray-500">
+                                                    No tour bookings found.
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>

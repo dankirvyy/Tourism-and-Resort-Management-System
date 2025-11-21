@@ -94,6 +94,11 @@
                                     <dt class="text-sm font-medium text-gray-500">Room Type</dt>
                                     <dd class="text-sm font-medium text-gray-900"><?= html_escape($booking['room_type_data']['name']) ?></dd>
                                 </div>
+                                <div class="bg-blue-50 p-3 rounded-md">
+                                    <p class="text-xs text-blue-700">
+                                        <strong>ℹ️ Room Assignment:</strong> Your specific room will be assigned by our front desk upon check-in.
+                                    </p>
+                                </div>
                                 <div class="flex justify-between">
                                     <dt class="text-sm font-medium text-gray-500">Check-in</dt>
                                     <dd class="text-sm font-medium text-gray-900">
@@ -152,7 +157,6 @@
                             </div>
                         <?php endif; ?>
                         
-                        <input type="hidden" name="booking_id" value="<?= $booking['booking_data']['room_id'] ?>">
                         <input type="hidden" name="payment_method" id="payment_method_input" value="">
                         <input type="hidden" name="paypal_order_id" id="paypal_order_id" value="">
                         <input type="hidden" name="payment_type" id="payment_type_input" value="full">
