@@ -303,8 +303,9 @@ $config['payment'] = array(
 );
 
 $config['sendgrid_api_key'] = getenv('SENDGRID_API_KEY') ?: 'your_sendgrid_api_key_here';
-$config['sender_email'] = getenv('SENDER_EMAIL') ?: 'your_sender_email@example.com'; 
-$config['sender_name'] = getenv('SENDER_NAME') ?: 'Your App Name';
+$config['sender_email'] = getenv('SENDER_EMAIL') ?: 'noreply@visitmindoro.xyz'; 
+$config['sender_name'] = getenv('SENDER_NAME') ?: 'Visit Mindoro';
+$config['reply_to_email'] = getenv('REPLY_TO_EMAIL') ?: 'info@visitmindoro.xyz';
 
 /*
 |--------------------------------------------------------------------------

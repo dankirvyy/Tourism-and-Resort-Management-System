@@ -90,7 +90,7 @@
                            placeholder="Search for tours...">
                     
                     <select name="sort" class="mt-2 sm:mt-0 block w-full sm:w-auto rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-orange-600 sm:text-sm sm:leading-6">
-                        <option value="default" <?= !isset($sort_term) ? 'selected' : '' ?>>Sort by... (Default)</option>
+                        <option value="default" <?= !isset($sort_term) ? 'selected' : '' ?>>Sort by</option>
                         <option value="price_asc" <?= ($sort_term ?? '') === 'price_asc' ? 'selected' : '' ?>>Price: Low to High</option>
                         <option value="price_desc" <?= ($sort_term ?? '') === 'price_desc' ? 'selected' : '' ?>>Price: High to Low</option>
                         <option value="name_asc" <?= ($sort_term ?? '') === 'name_asc' ? 'selected' : '' ?>>Name: A to Z</option>

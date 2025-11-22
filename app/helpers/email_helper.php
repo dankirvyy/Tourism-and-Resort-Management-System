@@ -16,6 +16,7 @@ if (!function_exists('send_booking_confirmation')) {
         $apiKey = config_item('sendgrid_api_key');
         $senderEmail = config_item('sender_email');
         $senderName = config_item('sender_name');
+        $replyToEmail = config_item('reply_to_email');
 
         if (empty($apiKey) || empty($senderEmail)) {
             error_log("SendGrid cURL Error: API Key or Sender Email is not configured.");
@@ -33,6 +34,10 @@ if (!function_exists('send_booking_confirmation')) {
             ],
             'from' => [
                 'email' => $senderEmail,
+                'name' => $senderName
+            ],
+            'reply_to' => [
+                'email' => $replyToEmail ?: $senderEmail,
                 'name' => $senderName
             ],
             'subject' => $subject,

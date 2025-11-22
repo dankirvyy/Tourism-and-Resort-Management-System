@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <title>Add New Tour</title>
     <link href="<?= site_url('public/css/output.css') ?>" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-gray-50">
     <div class="max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
@@ -39,15 +42,15 @@
                                 <input type="text" name="duration" id="duration" placeholder="e.g., '4 hours' or 'Half-day'" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
                             </div>
                             
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div>
-                                    <label for="latitude" class="block text-sm font-medium text-gray-700">Latitude (Optional)</label>
-                                    <input type="text" name="latitude" id="latitude" placeholder="e.g., 13.4007" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
-                                </div>
-                                <div>
-                                    <label for="longitude" class="block text-sm font-medium text-gray-700">Longitude (Optional)</label>
-                                    <input type="text" name="longitude" id="longitude" placeholder="e.g., 121.2250" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm">
-                                </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-map-marker-alt text-orange-600"></i> Pin Tour Location on Map (Optional)
+                                </label>
+                                <p class="text-xs text-gray-500 mb-2">Click on the map to set the tour location. The coordinates will be saved automatically.</p>
+                                <div id="map" class="w-full h-80 rounded-lg border-2 border-gray-300 shadow-sm"></div>
+                                <input type="hidden" name="latitude" id="latitude">
+                                <input type="hidden" name="longitude" id="longitude">
+                                <p id="coordinates-display" class="mt-2 text-sm text-gray-600">Click on the map to select coordinates</p>
                             </div>
                             <div>
                                 <label for="image" class="block text-sm font-medium text-gray-700">Image</label>
@@ -64,5 +67,40 @@
             </div>
         </div>
     </div>
+    
+    <script>
+        // Initialize map centered on Mindoro
+        const map = L.map('map').setView([13.0, 121.2], 9);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        let marker = null;
+        
+        // Handle map clicks
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(8);
+            const lng = e.latlng.lng.toFixed(8);
+            
+            // Update hidden inputs
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            
+            // Update display
+            document.getElementById('coordinates-display').innerHTML = 
+                '<i class="fas fa-check-circle text-green-600"></i> Location pinned: <strong>' + lat + ', ' + lng + '</strong>';
+            
+            // Remove existing marker if any
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            
+            // Add new marker
+            marker = L.marker([lat, lng]).addTo(map)
+                .bindPopup('Selected Tour Location<br>Lat: ' + lat + '<br>Lng: ' + lng)
+                .openPopup();
+        });
+    </script>
 </body>
 </html>
