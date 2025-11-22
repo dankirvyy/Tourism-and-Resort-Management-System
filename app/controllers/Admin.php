@@ -31,43 +31,101 @@ class Admin extends Controller {
      * Marks bookings as completed and frees up rooms when check-out date has passed
      */
     private function auto_cleanup_expired_bookings() {
-        $now = date('Y-m-d H:i:s');
+        // Use the model methods for cleaner code and better reusability
+        $booking_result = $this->Booking_model->auto_complete_expired_bookings();
+        $tour_result = $this->Tour_booking_model->auto_complete_expired_tour_bookings();
         
-        // Get guest IDs that will be affected by auto-completion
-        $affected_bookings = $this->db->raw(
-            "SELECT DISTINCT guest_id 
-             FROM bookings 
-             WHERE status = 'confirmed' 
-             AND CONCAT(check_out_date, ' ', check_out_time) < :now
-             AND guest_id IS NOT NULL",
-            ['now' => $now]
-        )->fetchAll(PDO::FETCH_COLUMN);
-        
-        // Update expired bookings to completed (considering both date and time)
-        $this->db->raw(
-            "UPDATE bookings 
-             SET status = 'completed' 
-             WHERE status = 'confirmed' 
-             AND CONCAT(check_out_date, ' ', check_out_time) < :now",
-            ['now' => $now]
-        );
-        
-        // Auto-refresh metrics for all affected guests
-        foreach ($affected_bookings as $guest_id) {
-            $this->Guest_model->update_guest_metrics($guest_id);
+        // Update guest metrics for affected guests from room bookings
+        if (!empty($booking_result['affected_guests'])) {
+            foreach ($booking_result['affected_guests'] as $guest_id) {
+                if ($guest_id) {
+                    $this->Guest_model->update_guest_metrics($guest_id);
+                }
+            }
         }
         
-        // Free up rooms that no longer have active bookings
-        $this->db->raw(
-            "UPDATE rooms r
-             SET r.status = 'available'
-             WHERE r.status = 'occupied'
-             AND NOT EXISTS (
-                 SELECT 1 FROM bookings b
-                 WHERE b.room_id = r.id
-                 AND b.status = 'confirmed'
-             )"
-        );
+        // Update guest metrics for affected guests from tour bookings
+        if (!empty($tour_result['affected_guests'])) {
+            foreach ($tour_result['affected_guests'] as $guest_id) {
+                if ($guest_id) {
+                    $this->Guest_model->update_guest_metrics($guest_id);
+                }
+            }
+        }
+        
+        // Note: Room status updates are handled in the Booking_model method
+    }
+    
+    /**
+     * Manual trigger for cleaning up expired bookings
+     * Useful for testing or force-updating booking statuses
+     */
+    public function cleanup_bookings() {
+        // Show debug info
+        $php_time = date('Y-m-d H:i:s');
+        $php_timezone = date_default_timezone_get();
+        
+        // Get MySQL time
+        $mysql_time_result = $this->db->raw("SELECT NOW() as mysql_time")->fetch(PDO::FETCH_ASSOC);
+        $mysql_time = $mysql_time_result['mysql_time'];
+        
+        // Get MySQL timezone
+        $mysql_tz_result = $this->db->raw("SELECT @@session.time_zone as tz")->fetch(PDO::FETCH_ASSOC);
+        $mysql_timezone = $mysql_tz_result['tz'];
+        
+        $debug_info = "<strong>Timezone Configuration:</strong><br>";
+        $debug_info .= "PHP Timezone: $php_timezone<br>";
+        $debug_info .= "PHP Time: $php_time<br>";
+        $debug_info .= "MySQL Timezone: $mysql_timezone<br>";
+        $debug_info .= "MySQL Time: $mysql_time<br><br>";
+        
+        // Check confirmed bookings
+        $confirmed = $this->db->raw(
+            "SELECT id, check_out_date, check_out_time, 
+                    CONCAT(check_out_date, ' ', check_out_time) as full_checkout,
+                    status
+             FROM bookings
+             WHERE status = 'confirmed'"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (!empty($confirmed)) {
+            $debug_info .= "<strong>Confirmed Bookings:</strong><br>";
+            foreach ($confirmed as $b) {
+                $expired = (strtotime($b['full_checkout']) <= strtotime($php_time)) ? '<span style="color:red">EXPIRED</span>' : '<span style="color:green">ACTIVE</span>';
+                $debug_info .= "Booking #{$b['id']}: checkout at {$b['full_checkout']} - $expired<br>";
+            }
+            $debug_info .= "<br>";
+        } else {
+            $debug_info .= "No confirmed bookings found.<br><br>";
+        }
+        
+        $booking_result = $this->Booking_model->auto_complete_expired_bookings();
+        $tour_result = $this->Tour_booking_model->auto_complete_expired_tour_bookings();
+        
+        // Update guest metrics for affected guests
+        if (!empty($booking_result['affected_guests'])) {
+            foreach ($booking_result['affected_guests'] as $guest_id) {
+                if ($guest_id) {
+                    $this->Guest_model->update_guest_metrics($guest_id);
+                }
+            }
+        }
+        
+        if (!empty($tour_result['affected_guests'])) {
+            foreach ($tour_result['affected_guests'] as $guest_id) {
+                if ($guest_id) {
+                    $this->Guest_model->update_guest_metrics($guest_id);
+                }
+            }
+        }
+        
+        $message = $debug_info . "Cleanup completed!<br>" . 
+                   "Room bookings updated: " . $booking_result['updated_bookings'] . "<br>" .
+                   "Rooms freed: " . $booking_result['freed_rooms'] . "<br>" .
+                   "Tour bookings updated: " . $tour_result['updated_bookings'];
+        
+        $this->session->set_flashdata('success', $message);
+        redirect('/admin/bookings');
     }
 
     // ---------------------------------------------------

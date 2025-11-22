@@ -53,6 +53,18 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
 
 /*
 | -------------------------------------------------------------------
+| Timezone Configuration
+| -------------------------------------------------------------------
+| Set your application timezone. Common values:
+| - 'Asia/Manila' (Philippines - UTC+8)
+| - 'UTC' (Coordinated Universal Time)
+| - 'America/New_York' (Eastern Time)
+| Full list: https://www.php.net/manual/en/timezones.php
+*/
+$config['timezone']                = 'Asia/Manila';
+
+/*
+| -------------------------------------------------------------------
 | LavaLust Version
 | -------------------------------------------------------------------
 */

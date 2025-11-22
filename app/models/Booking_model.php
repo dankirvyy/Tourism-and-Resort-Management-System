@@ -140,5 +140,109 @@ class Booking_model extends Model {
         
         return $this->db->raw($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Automatically complete expired bookings
+     * Updates bookings to 'completed' status when checkout time has passed
+     * Also frees up rooms that are no longer occupied
+     * 
+     * @return array ['updated_bookings' => int, 'freed_rooms' => int, 'affected_guests' => array]
+     */
+    public function auto_complete_expired_bookings() {
+        $now = date('Y-m-d H:i:s');
+        
+        // Log current time for debugging
+        error_log("Auto-cleanup running at: " . $now);
+        
+        // First, find which bookings will be affected (for debugging)
+        $expiring_bookings = $this->db->raw(
+            "SELECT id, check_out_date, check_out_time, 
+                    CONCAT(check_out_date, ' ', check_out_time) as full_checkout,
+                    status
+             FROM bookings
+             WHERE status = 'confirmed' 
+             AND CONCAT(check_out_date, ' ', check_out_time) <= :now",
+            ['now' => $now]
+        )->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (!empty($expiring_bookings)) {
+            error_log("Found " . count($expiring_bookings) . " expired bookings:");
+            foreach ($expiring_bookings as $booking) {
+                error_log("  Booking ID {$booking['id']}: checkout at {$booking['full_checkout']} (current: $now)");
+            }
+        }
+        
+        // Get guest IDs that will be affected by auto-completion
+        $affected_guests = $this->db->raw(
+            "SELECT DISTINCT guest_id 
+             FROM bookings
+             WHERE status = 'confirmed' 
+             AND CONCAT(check_out_date, ' ', check_out_time) <= :now
+             AND guest_id IS NOT NULL",
+            ['now' => $now]
+        )->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Update expired bookings to completed (using <= instead of < to include exact time)
+        $result = $this->db->raw(
+            "UPDATE bookings
+             SET status = 'completed' 
+             WHERE status = 'confirmed' 
+             AND CONCAT(check_out_date, ' ', check_out_time) <= :now",
+            ['now' => $now]
+        );
+        
+        $updated_bookings = $result->rowCount();
+        
+        if ($updated_bookings > 0) {
+            error_log("Successfully auto-completed $updated_bookings booking(s)");
+        } else {
+            error_log("No bookings were updated");
+        }
+        
+        // Free up rooms that no longer have active bookings
+        $room_result = $this->db->raw(
+            "UPDATE rooms r
+             SET r.status = 'available'
+             WHERE r.status = 'occupied'
+             AND NOT EXISTS (
+                 SELECT 1 FROM {$this->table} b
+                 WHERE b.room_id = r.id
+                 AND b.status = 'confirmed'
+             )"
+        );
+        
+        $freed_rooms = $room_result->rowCount();
+        
+        return [
+            'updated_bookings' => $updated_bookings,
+            'freed_rooms' => $freed_rooms,
+            'affected_guests' => $affected_guests
+        ];
+    }
+
+    /**
+     * Get bookings that will expire within X hours
+     * Useful for sending reminder notifications
+     * 
+     * @param int $hours Number of hours to look ahead
+     * @return array Array of bookings about to expire
+     */
+    public function get_expiring_soon($hours = 24) {
+        $now = date('Y-m-d H:i:s');
+        $future = date('Y-m-d H:i:s', strtotime("+{$hours} hours"));
+        
+        return $this->db->raw(
+            "SELECT b.*, g.first_name, g.last_name, g.email, r.room_number, rt.name as room_type_name
+             FROM {$this->table} b
+             LEFT JOIN guests g ON b.guest_id = g.id
+             LEFT JOIN rooms r ON b.room_id = r.id
+             LEFT JOIN room_types rt ON r.room_type_id = rt.id
+             WHERE b.status = 'confirmed'
+             AND CONCAT(b.check_out_date, ' ', b.check_out_time) > :now
+             AND CONCAT(b.check_out_date, ' ', b.check_out_time) <= :future
+             ORDER BY b.check_out_date ASC, b.check_out_time ASC",
+            ['now' => $now, 'future' => $future]
+        )->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 ?>

@@ -80,6 +80,13 @@ define('PREVENT_DIRECT_ACCESS', TRUE);
 
    /*
     * ------------------------------------------------------
+    * Set Default Timezone (Philippines)
+    * ------------------------------------------------------
+    */
+   date_default_timezone_set('Asia/Manila');
+
+   /*
+    * ------------------------------------------------------
     * Load Environment Variables from .env file
     * ------------------------------------------------------
     */

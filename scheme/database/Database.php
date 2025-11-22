@@ -253,7 +253,14 @@ class Database {
 
         try {
             $this->db = new PDO($dsn, $username, $password, $options);
-             $this->driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+            $this->driver = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME);
+            
+            // Set MySQL timezone if using MySQL/MariaDB
+            if (in_array($driver, ['mysql', 'mariadb'])) {
+                // Get timezone from config or use default
+                $timezone = isset($dbConfig['timezone']) ? $dbConfig['timezone'] : '+08:00';
+                $this->db->exec("SET time_zone = '$timezone'");
+            }
         } catch (Exception $e) {
             $error = load_class('Errors', 'kernel');
             $error->show_database_error(

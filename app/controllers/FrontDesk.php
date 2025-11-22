@@ -9,11 +9,25 @@ class FrontDesk extends Controller {
         $this->call->model('Room_model');
         $this->call->model('Room_type_model');
         $this->call->model('Guest_model');
+        $this->call->model('Tour_booking_model');
         
         // Check if user is logged in and has front_desk role
         if (!$this->session->has_userdata('front_desk_user_id')) {
             redirect('/login');
         }
+        
+        // Auto-cleanup expired bookings
+        $this->auto_cleanup_expired_bookings();
+    }
+    
+    /**
+     * Automatically process expired bookings
+     * Marks bookings as completed when check-out time has passed
+     */
+    private function auto_cleanup_expired_bookings() {
+        // Use the model methods for cleaner code
+        $this->Booking_model->auto_complete_expired_bookings();
+        $this->Tour_booking_model->auto_complete_expired_tour_bookings();
     }
     
     public function dashboard() {

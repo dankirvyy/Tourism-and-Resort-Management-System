@@ -21,28 +21,26 @@ class Home extends Controller {
      * Marks bookings as completed and frees up rooms when check-out date has passed
      */
     private function auto_cleanup_expired_bookings() {
-        $now = date('Y-m-d H:i:s');
+        // Use the model methods for cleaner code and better reusability
+        $booking_result = $this->Booking_model->auto_complete_expired_bookings();
+        $tour_result = $this->Tour_booking_model->auto_complete_expired_tour_bookings();
         
-        // Update expired bookings to completed (considering both date and time)
-        $this->db->raw(
-            "UPDATE bookings 
-             SET status = 'completed' 
-             WHERE status = 'confirmed' 
-             AND CONCAT(check_out_date, ' ', check_out_time) < :now",
-            ['now' => $now]
-        );
+        // Update guest metrics for affected guests
+        if (!empty($booking_result['affected_guests'])) {
+            foreach ($booking_result['affected_guests'] as $guest_id) {
+                if ($guest_id) {
+                    $this->Guest_model->update_guest_metrics($guest_id);
+                }
+            }
+        }
         
-        // Free up rooms that no longer have active bookings
-        $this->db->raw(
-            "UPDATE rooms r
-             SET r.status = 'available'
-             WHERE r.status = 'occupied'
-             AND NOT EXISTS (
-                 SELECT 1 FROM bookings b
-                 WHERE b.room_id = r.id
-                 AND b.status = 'confirmed'
-             )"
-        );
+        if (!empty($tour_result['affected_guests'])) {
+            foreach ($tour_result['affected_guests'] as $guest_id) {
+                if ($guest_id) {
+                    $this->Guest_model->update_guest_metrics($guest_id);
+                }
+            }
+        }
     }
 
     private function get_room_types_with_availability($search = null, $sort = null, $location = null) {
@@ -141,7 +139,23 @@ class Home extends Controller {
     }
 
     public function contact() {
-        $this->call->view('public/contact');
+        $data = [];
+        
+        // If user is logged in, get their information for autofill
+        if ($this->session->has_userdata('user_id')) {
+            $user_id = $this->session->userdata('user_id');
+            $guest_info = $this->Guest_model->find($user_id);
+            
+            if ($guest_info) {
+                // Concatenate first_name and last_name to create full name
+                $first_name = $guest_info['first_name'] ?? '';
+                $last_name = $guest_info['last_name'] ?? '';
+                $data['user_name'] = trim($first_name . ' ' . $last_name);
+                $data['user_email'] = $guest_info['email'] ?? '';
+            }
+        }
+        
+        $this->call->view('public/contact', $data);
     }
 
     public function send_contact() {
@@ -192,6 +206,20 @@ class Home extends Controller {
             return; // Stop further execution
         }
         // --- END OF CHECK ---
+        
+        // --- CHECK FOR EXISTING CONFIRMED BOOKINGS ---
+        $guest_id = $this->session->userdata('user_id');
+        $existing_booking = $this->db->table('bookings')
+            ->where('guest_id', $guest_id)
+            ->where('status', 'confirmed')
+            ->get();
+        
+        if ($existing_booking) {
+            $this->session->set_flashdata('error', 'You already have an active booking. Please wait until it is completed or cancelled before making a new reservation.');
+            redirect('/my-profile');
+            return;
+        }
+        // --- END BOOKING CHECK ---
 
         // Find the specific room type by its ID
         $data['room_type'] = $this->Room_type_model->find($room_type_id);
@@ -365,6 +393,20 @@ class Home extends Controller {
             redirect('/login');
             return; // Stop further execution
         }
+        
+        // --- CHECK FOR EXISTING CONFIRMED TOUR BOOKINGS ---
+        $guest_id = $this->session->userdata('user_id');
+        $existing_tour_booking = $this->db->table('tour_bookings')
+            ->where('guest_id', $guest_id)
+            ->where('status', 'confirmed')
+            ->get();
+        
+        if ($existing_tour_booking) {
+            $this->session->set_flashdata('error', 'You already have an active tour booking. Please wait until it is completed or cancelled before making a new reservation.');
+            redirect('/my-profile');
+            return;
+        }
+        // --- END TOUR BOOKING CHECK ---
         // --- END OF CHECK ---
 
         $data['tour'] = $this->Tour_model->find($tour_id);

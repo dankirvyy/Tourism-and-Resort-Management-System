@@ -66,6 +66,7 @@ $database['main'] = array(
     'database'	=> 'visit_mindoro_db',
     'charset'	=> 'utf8mb4',
     'dbprefix'	=> '',
+    'timezone'  => '+08:00', // Philippines timezone (Asia/Manila)
     // Optional for SQLite
     'path'      => ''
 );

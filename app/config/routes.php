@@ -207,3 +207,6 @@ $router->get('/admin/export-bookings', 'Admin::export_bookings');
 // Quick Status Update Routes
 $router->post('/admin/booking/update-status/{id}/{status}', 'Admin::update_booking_status');
 $router->post('/admin/tour-booking/update-status/{id}/{status}', 'Admin::update_tour_booking_status');
+
+// Manual Cleanup Route
+$router->get('/admin/cleanup-bookings', 'Admin::cleanup_bookings');

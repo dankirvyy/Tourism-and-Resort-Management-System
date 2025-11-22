@@ -79,9 +79,6 @@
                     <button onclick="showTab('inactive')" id="tab-inactive" class="tab-btn group relative min-w-0 flex-1 overflow-hidden bg-white py-4 px-4 text-center text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 border-b-2 border-transparent">
                         <span><i class="fas fa-clock mr-2"></i>Inactive Guests</span>
                     </button>
-                    <button onclick="showTab('birthday')" id="tab-birthday" class="tab-btn group relative min-w-0 flex-1 overflow-hidden bg-white py-4 px-4 text-center text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 border-b-2 border-transparent">
-                        <span><i class="fas fa-birthday-cake mr-2"></i>Birthdays This Month</span>
-                    </button>
                 </nav>
             </div>
 
@@ -219,52 +216,6 @@
                 <?php endif; ?>
             </div>
 
-            <!-- Birthday Guests Tab -->
-            <div id="content-birthday" class="tab-content p-6 hidden">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Birthdays This Month 🎂</h3>
-                <p class="text-sm text-gray-600 mb-4">Send these guests a special birthday offer to show you care!</p>
-                <?php if (!empty($birthday_guests)): ?>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Guest</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Birthday</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Guest Type</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php foreach ($birthday_guests as $guest): ?>
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex items-center">
-                                                <i class="fas fa-birthday-cake text-pink-500 mr-2"></i>
-                                                <span class="font-medium text-gray-900"><?= html_escape($guest['first_name'] . ' ' . $guest['last_name']) ?></span>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-gray-500"><?= html_escape($guest['email']) ?></td>
-                                        <td class="px-6 py-4 text-sm font-semibold text-gray-900"><?= date('F d', strtotime($guest['birthday'])) ?></td>
-                                        <td class="px-6 py-4 text-sm">
-                                            <span class="px-2 py-1 rounded-full text-xs font-semibold <?= $guest['guest_type'] === 'vip' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800' ?>">
-                                                <?= ucfirst($guest['guest_type']) ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm">
-                                            <a href="mailto:<?= html_escape($guest['email']) ?>" class="text-blue-600 hover:text-blue-900">
-                                                <i class="fas fa-envelope mr-1"></i>Send Greeting
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php else: ?>
-                    <p class="text-gray-500 text-center py-8">No birthdays this month.</p>
-                <?php endif; ?>
-            </div>
         </div>
 
         <!-- Quick Actions -->

@@ -148,5 +148,66 @@ class Tour_booking_model extends Model {
             ->where('status', 'confirmed')
             ->get_all();
     }
+
+    /**
+     * Automatically complete expired tour bookings
+     * Updates tour bookings to 'completed' status when booking date has passed
+     * 
+     * @return array ['updated_bookings' => int, 'affected_guests' => array]
+     */
+    public function auto_complete_expired_tour_bookings() {
+        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        
+        // Get guest IDs that will be affected by auto-completion
+        $affected_guests = $this->db->raw(
+            "SELECT DISTINCT guest_id 
+             FROM {$this->table}
+             WHERE status = 'confirmed' 
+             AND booking_date < :yesterday
+             AND guest_id IS NOT NULL",
+            ['yesterday' => $yesterday]
+        )->fetchAll(PDO::FETCH_COLUMN);
+        
+        // Update expired tour bookings to completed
+        $result = $this->db->raw(
+            "UPDATE {$this->table}
+             SET status = 'completed' 
+             WHERE status = 'confirmed' 
+             AND booking_date < :yesterday",
+            ['yesterday' => $yesterday]
+        );
+        
+        $updated_bookings = $result->rowCount();
+        
+        return [
+            'updated_bookings' => $updated_bookings,
+            'affected_guests' => $affected_guests
+        ];
+    }
+
+    /**
+     * Get tour bookings happening today
+     * 
+     * @return array Array of today's tour bookings
+     */
+    public function get_todays_tours() {
+        $today = date('Y-m-d');
+        
+        return $this->db->table($this->table)
+            ->select('
+                tour_bookings.*,
+                guests.first_name,
+                guests.last_name,
+                guests.email,
+                guests.phone_number,
+                tours.name as tour_name
+            ')
+            ->left_join('guests', 'tour_bookings.guest_id = guests.id')
+            ->left_join('tours', 'tour_bookings.tour_id = tours.id')
+            ->where('tour_bookings.booking_date', $today)
+            ->where('tour_bookings.status', 'confirmed')
+            ->order_by('tours.name', 'ASC')
+            ->get_all();
+    }
 }
 ?>
