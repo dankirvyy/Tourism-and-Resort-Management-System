@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Our Rooms - Visit Mindoro</title>
     <link href="<?= site_url('public/css/output.css') ?>" rel="stylesheet">
+    <link href="<?= site_url('public/css/chatbot.css') ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -370,5 +371,8 @@
             });
         });
     </script>
+    
+    <!-- Chatbot Widget -->
+    <script src="<?= site_url('public/js/chatbot.js') ?>"></script>
 </body>
 </html>

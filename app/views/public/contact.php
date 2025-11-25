@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Contact Us - Visit Mindoro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="<?= site_url('public/css/chatbot.css') ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -258,5 +259,7 @@
         marker.bindPopup("<b>Visit Mindoro Office</b><br>Calapan City").openPopup();
     </script>
     
+    <!-- Chatbot Widget -->
+    <script src="<?= site_url('public/js/chatbot.js') ?>"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>My Profile - Visit Mindoro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="<?= site_url('public/css/chatbot.css') ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="bg-gray-100">
@@ -378,5 +379,8 @@
             });
         });
     </script>
+    
+    <!-- Chatbot Widget -->
+    <script src="<?= site_url('public/js/chatbot.js') ?>"></script>
 </body>
 </html>

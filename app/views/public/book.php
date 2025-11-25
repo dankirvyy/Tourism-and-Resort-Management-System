@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Book a Room - Visit Mindoro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="<?= site_url('public/css/chatbot.css') ?>" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
     <header class="bg-white shadow-md sticky top-0 z-50">
@@ -196,5 +197,8 @@
             });
         });
     </script>
+    
+    <!-- Chatbot Widget -->
+    <script src="<?= site_url('public/js/chatbot.js') ?>"></script>
 </body>
 </html>
